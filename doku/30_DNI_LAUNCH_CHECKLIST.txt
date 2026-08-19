@@ -1,0 +1,350 @@
+════════════════════════════════════════════════════════════════════════════════
+                    DROPIFY - 30 DAY LAUNCH CHECKLIST
+                        Model: Zero Budget + VPS
+════════════════════════════════════════════════════════════════════════════════
+
+TIMELINE: M1 (Days 1-30) = MVP ready + 10 beta users
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ WEEK 1: INFRASTRUCTURE & BACKEND SCAFFOLDING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+☐ DAY 1: Infrastructure Setup
+  ☐ Purchase VPS (Hetzner CAX11: 20 PLN/month, 2 vCPU, 4GB RAM)
+  ☐ SSH access setup
+  ☐ Update system: apt update && apt upgrade
+  ☐ Install Docker & Docker Compose
+  ☐ Create project folder: /home/dropify/
+  ☐ Init git repo locally
+
+☐ DAY 2: Database & Cache Setup
+  ☐ Docker-compose.yml created (PostgreSQL 15, Redis 7)
+  ☐ docker-compose up -d
+  ☐ Postgres extensions: pgvector, jsonb
+  ☐ Create initial schema (users, jobs, matches, ratings)
+  ☐ Redis running on :6379
+  ☐ Backup strategy (daily pg_dump to /backups)
+
+☐ DAY 3: FastAPI Skeleton
+  ☐ Python 3.11 venv setup
+  ☐ FastAPI + Uvicorn + SQLAlchemy installed
+  ☐ /app structure: models/, schemas/, routes/, tasks/
+  ☐ main.py with FastAPI app instance
+  ☐ CORS setup for localhost:3000
+  ☐ Requirements.txt generated
+
+☐ DAY 4: Auth System (JWT)
+  ☐ User model (id, email, password_hash, role, created_at)
+  ☐ POST /api/auth/register endpoint
+  ☐ POST /api/auth/login endpoint (JWT token response)
+  ☐ get_current_user dependency
+  ☐ Password hashing (bcrypt)
+  ☐ Token validation & refresh logic
+
+☐ DAY 5: Job Model & API
+  ☐ Job model (title, description, budget, deadline, category, client_id)
+  ☐ POST /api/jobs (create) - auth required, role: client
+  ☐ GET /api/jobs (list) - pagination
+  ☐ GET /api/jobs/{id} (detail)
+  ☐ Basic validation
+
+☐ DAY 6-7: Celery + Redis Integration
+  ☐ Celery setup with Redis broker
+  ☐ @shared_task decorator test
+  ☐ trigger_ai_matching task skeleton
+  ☐ Create worker: celery -A app.tasks worker --loglevel=info
+  ☐ Add task to job creation endpoint
+
+═══════════════════════════════════════════════════════════════════════════════
+ WEEK 2: AI MATCHING & CORE LOGIC
+═══════════════════════════════════════════════════════════════════════════════
+
+☐ DAY 8: Claude API Integration
+  ☐ Create .env file: ANTHROPIC_API_KEY
+  ☐ pip install anthropic
+  ☐ Test Claude API call (simple prompt)
+  ☐ Create job_analyzer() function
+    - Input: Job title + description + budget
+    - Output: JSON { category, skills[], urgency, suggested_price }
+  ☐ Error handling & retry logic
+
+☐ DAY 9: Embeddings & pgvector
+  ☐ Add embedding column to jobs & users: vector(1536)
+  ☐ Install pgvector extension in Postgres
+  ☐ Create vector index (cosine similarity)
+  ☐ Helper function: get_embedding(text) → calls Claude or local model
+  ☐ Test embedding generation
+
+☐ DAY 10: Scoring Algorithm
+  ☐ calculate_match_score() function (formula in blueprint)
+  ☐ Test with dummy data
+  ☐ Adjust weights if needed
+  ☐ Cache scores in Redis
+
+☐ DAY 11-12: Matching Engine (Celery task)
+  ☐ trigger_ai_matching task (full pipeline)
+    1. Analyze job (Claude)
+    2. Vector search freelancers (pgvector top 10)
+    3. Score each → sort
+    4. Save top 3 matches to DB
+    5. Send notifications (placeholder)
+  ☐ Test end-to-end
+  ☐ Error handling
+
+☐ DAY 13-14: Match API & Notifications
+  ☐ GET /api/matches/job/{job_id} - list matches
+  ☐ POST /api/matches/{match_id}/accept - freelancer accepts
+  ☐ POST /api/matches/{match_id}/reject - decline
+  ☐ Basic email notifications (SendGrid free tier)
+  ☐ Notification service skeleton
+
+═══════════════════════════════════════════════════════════════════════════════
+ WEEK 3: FRONTEND & POLISH
+═══════════════════════════════════════════════════════════════════════════════
+
+☐ DAY 15: React Setup
+  ☐ npm create vite@latest dropify -- --template react
+  ☐ Install: React Router, Zustand, Tailwind, Axios
+  ☐ Folder structure: /src/pages, /src/components, /src/hooks
+  ☐ Tailwind configured
+  ☐ env.local: VITE_API_URL=http://localhost:8000
+
+☐ DAY 16: Auth Pages
+  ☐ Login page (/login) - email + password form
+  ☐ Register page (/register) - role selector (client/freelancer)
+  ☐ Login POST to /api/auth/login
+  ☐ JWT storage in localStorage
+  ☐ Protected routes wrapper (RequireAuth)
+
+☐ DAY 17: Dashboard Skeleton
+  ☐ Dashboard page (/dashboard)
+  ☐ Client view: my jobs list, create job button
+  ☐ Freelancer view: my matches, recommended jobs
+  ☐ Simple stats cards (jobs, earnings placeholder)
+
+☐ DAY 18: Job Creation Form
+  ☐ Form component: title, description, budget, deadline, location, skills
+  ☐ POST to /api/jobs
+  ☐ Validation
+  ☐ Success toast & redirect
+
+☐ DAY 19: Matches Display
+  ☐ Matches list page (/matches)
+  ☐ Show top 3 AI-matched freelancers
+  ☐ Display: name, rating, score, price
+  ☐ Accept/Reject buttons
+  ☐ Toast notifications
+
+☐ DAY 20: User Profile
+  ☐ User profile page (/profile)
+  ☐ Show: name, email, skills, rating, bio
+  ☐ Edit form (client role: can edit name, bio; freelancer: + skills)
+  ☐ PUT to /api/users/{id}
+
+☐ DAY 21-22: Ratings & Reviews
+  ☐ Rating component (star picker)
+  ☐ POST /api/ratings endpoint
+  ☐ GET /api/ratings/user/{user_id}
+  ☐ Display ratings on profile
+
+☐ DAY 23: Basic Analytics
+  ☐ GET /api/analytics (client: job stats, freelancer: earning stats)
+  ☐ Dashboard charts (Recharts)
+  ☐ Simple bar chart: jobs/month
+
+☐ DAY 24: Bug Fixes & Polish
+  ☐ Test auth flow end-to-end
+  ☐ Fix CORS issues
+  ☐ Fix form validation
+  ☐ Mobile responsive fixes
+  ☐ Error handling improvements
+
+═══════════════════════════════════════════════════════════════════════════════
+ WEEK 4: DEPLOYMENT & LAUNCH
+═══════════════════════════════════════════════════════════════════════════════
+
+☐ DAY 25: VPS Deployment
+  ☐ Clone repo to VPS
+  ☐ docker-compose up -d (backend)
+  ☐ npm build (frontend)
+  ☐ Nginx setup: reverse proxy :80 → :8000 (API), serve React
+  ☐ Test locally first: curl http://localhost/api/health
+
+☐ DAY 26: SSL & Domain
+  ☐ Domain purchased (dropify.pl or similar) - 50 PLN/year
+  ☐ DNS A record → VPS IP
+  ☐ Let's Encrypt certificate (certbot)
+  ☐ Auto-renewal cronjob
+  ☐ Redirect HTTP → HTTPS
+
+☐ DAY 27: Monitoring & Logging
+  ☐ Basic error tracking (Sentry free tier OR logs to file)
+  ☐ Uptime monitoring (UptimeRobot free tier)
+  ☐ Database backup cronjob
+  ☐ Error alerts to email
+
+☐ DAY 28: Beta User Onboarding
+  ☐ Landing page: simple HTML signup form
+  ☐ 10 beta users invited (friends, FB groups)
+  ☐ Typeform survey for feedback
+  ☐ Create test data: 3 sample jobs
+
+☐ DAY 29: Testing & Bug Fixes
+  ☐ Full end-to-end test with beta users
+  ☐ Fix critical bugs
+  ☐ Performance test (load on matching engine)
+  ☐ Security audit: SQL injection, JWT vulnerability, CORS
+
+☐ DAY 30: Go Live!
+  ☐ Final deployment
+  ☐ DNS switch
+  ☐ Social media post (LinkedIn, FB)
+  ☐ Monitor for errors
+
+════════════════════════════════════════════════════════════════════════════════
+ TECHNICAL DEBT & FUTURE (M2+)
+════════════════════════════════════════════════════════════════════════════════
+
+M2 (Days 31-60):
+  ☐ Stripe/Przelewy24 integration for payments
+  ☐ Email templates (SendGrid)
+  ☐ SMS notifications (Twilio)
+  ☐ Improved matching algorithm tuning
+  ☐ Freelancer search by skills
+  ☐ Admin panel (basic: user management, job moderation)
+
+M3 (Days 61-90):
+  ☐ WooCommerce plugin
+  ☐ API documentation (Swagger)
+  ☐ Premium subscription tiers
+  ☐ Affiliate program backend
+  ☐ Advanced analytics
+  ☐ User reputation system (badges)
+
+════════════════════════════════════════════════════════════════════════════════
+ COST BREAKDOWN (M1)
+════════════════════════════════════════════════════════════════════════════════
+
+Infrastructure:
+  VPS (Hetzner)          20 PLN/month
+  Domain (annual)        ~5 PLN/month (50 PLN/year)
+  Claude API (est.)     150 PLN/month (if 5-10 jobs/day)
+  SendGrid (free tier)    0 PLN
+  ────────────────────────────────
+  TOTAL                 175 PLN/month
+
+Development:
+  Time: You (DIY)        FREE (your time)
+  Tools: GitHub          FREE
+  ────────────────────────────────
+
+TOTAL M1 COST: ~175 PLN/month
+
+Breakeven: 3-4 jobs/month @ 64 PLN margin = Profitable immediately!
+
+════════════════════════════════════════════════════════════════════════════════
+ RISK MITIGATION
+════════════════════════════════════════════════════════════════════════════════
+
+Risk: Claude API costs explode
+  → Mitigation: Cache results, batch processing, set daily quota
+
+Risk: No users signup
+  → Mitigation: Cold outreach to 50 FB groups day 15
+  → Offer free premium for first 20 users
+
+Risk: Matching algo sucks
+  → Mitigation: Start with manual review, A/B test with beta users
+  → Iterate based on feedback
+
+Risk: VPS goes down
+  → Mitigation: Automated backups, simple failover to second VPS if needed
+  → For M1, single VPS acceptable (redundancy in M6+)
+
+════════════════════════════════════════════════════════════════════════════════
+ GITHUB REPO STRUCTURE
+════════════════════════════════════════════════════════════════════════════════
+
+dropify/
+├── backend/
+│   ├── app/
+│   │   ├── models.py          (SQLAlchemy ORM)
+│   │   ├── schemas.py         (Pydantic)
+│   │   ├── routes/
+│   │   │   ├── auth.py
+│   │   │   ├── jobs.py
+│   │   │   ├── matches.py
+│   │   │   ├── ratings.py
+│   │   │   └── analytics.py
+│   │   ├── tasks.py           (Celery tasks)
+│   │   └── utils.py           (AI, scoring, helpers)
+│   ├── main.py                (FastAPI app entry)
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Login.jsx
+│   │   │   ├── Register.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── JobCreate.jsx
+│   │   │   ├── Matches.jsx
+│   │   │   ├── Profile.jsx
+│   │   │   └── Analytics.jsx
+│   │   ├── components/
+│   │   │   ├── Nav.jsx
+│   │   │   ├── Card.jsx
+│   │   │   └── ...
+│   │   ├── hooks/
+│   │   │   ├── useAuth.js
+│   │   │   └── useApi.js
+│   │   └── App.jsx
+│   ├── package.json
+│   ├── vite.config.js
+│   └── Dockerfile
+│
+├── docker-compose.yml
+├── nginx.conf
+├── .env.example
+├── README.md
+└── .gitignore
+
+════════════════════════════════════════════════════════════════════════════════
+ OUTREACH SCRIPT (FB Groups, Reddit, Slack)
+════════════════════════════════════════════════════════════════════════════════
+
+"Hej! 👋
+
+Szukamy 20 beta testerów do nowej platformy DROPIFY - automatyczne dopasowanie 
+zleceń dla freelancerów i e-commerce.
+
+Co to jest?
+  ✓ Zleceniodawcy postują job → AI automatycznie dopasowuje freelancerów
+  ✓ Niższe provisje (5-15% vs 20% na Upwork)
+  ✓ Gotowe integracje (WooCommerce, Shopify)
+
+Oferujemy:
+  ✓ FREE dostęp na 3 miesiące
+  ✓ Feedback miesiąc → early bird discount
+
+Zainteresowany?
+  → Wciśnij link do ankiety: [Typeform URL]
+
+#dropshipping #freelance #startup #poland"
+
+════════════════════════════════════════════════════════════════════════════════
+ QUICK WINS (First month to hit KPIs)
+════════════════════════════════════════════════════════════════════════════════
+
+Day 15: First working job posting
+Day 20: First AI match generated
+Day 25: First user signup via landing page
+Day 28: First 5 beta users
+Day 30: First completed job (or very close)
+
+Success = 10 users + 5 jobs by M1 end!
+
+════════════════════════════════════════════════════════════════════════════════
+
+Good luck! 🚀 Dump questions → Reread the Business Plan + Technical Blueprint.

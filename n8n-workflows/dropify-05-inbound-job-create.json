@@ -1,0 +1,76 @@
+{
+  "name": "DROPIFY 05 — Inbound: tworzenie zlecenia z zewnętrznego źródła (formularz, CRM, Excel…)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Jak to działa — n8n → DROPIFY (kierunek wejściowy)\n\nTen workflow pokazuje, jak n8n może tworzyć zlecenia W platformie DROPIFY.\n\n1. Wyzwalacz: dowolny trigger n8n — np. Google Forms, Airtable, kalkulator w Excel, wiadomość e-mail (w tym przykładzie: Webhook, do którego wysyłasz JSON).\n2. Węzeł HTTP wywołuje `POST /api/n8n/trigger` z akcją `job.create`.\n3. DROPIFY tworzy zlecenie dla klienta (po email) i automatycznie odpala AI matching.\n\nWymagane zmienne środowiskowe n8n:\n- `DROPIFY_API_URL` — np. http://api:8000/api (w sieci docker) lub https://api.dropify.app/api\n- `DROPIFY_N8N_KEY` — wartość `N8N_INBOUND_KEY` z backend/.env\n\nPrzykładowy JSON do Webhooka:\n```json\n{\n  \"action\": \"job.create\",\n  \"client_email\": \"demo@dropify.app\",\n  \"title\": \"10 banerów social media\",\n  \"description\": \"Potrzebujemy 10 banerów promocyjnych w stylu brandu.\",\n  \"budget\": 800,\n  \"deadline\": \"2026-09-30\",\n  \"required_skills\": [\"graphic design\"]\n}\n```",
+        "height": 460,
+        "width": 500
+      },
+      "id": "sticky-5",
+      "name": "Instrukcja",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-520, -40]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dropify-inbound-job",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-5",
+      "name": "Webhook: źródło zlecenia (JSON)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "dropify-inbound-job-05"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.DROPIFY_API_URL}}/n8n/trigger",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Dropify-Api-Key",
+              "value": "={{$env.DROPIFY_N8N_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'job.create', client_email: $json.client_email, title: $json.title, description: $json.description, budget: Number($json.budget), deadline: $json.deadline, location: $json.location || '', category: $json.category || '', required_skills: $json.required_skills || [] }) }}",
+        "options": {}
+      },
+      "id": "http-5",
+      "name": "DROPIFY API: job.create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [260, 0]
+    }
+  ],
+  "connections": {
+    "Webhook: źródło zlecenia (JSON)": {
+      "main": [
+        [
+          {
+            "node": "DROPIFY API: job.create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

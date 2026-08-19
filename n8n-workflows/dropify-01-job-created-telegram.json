@@ -1,0 +1,77 @@
+{
+  "name": "DROPIFY 01 — New job → Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Jak to działa\n\n1. DROPIFY API wysyła event `dropify-job-created` na ten webhook (HMAC-podpisany).\n2. Węzeł Telegram wysyła powiadomienie o nowym zleceniu.\n\nWymagane zmienne środowiskowe n8n:\n- `TELEGRAM_BOT_TOKEN` — token bota z BotFather\n- `TELEGRAM_CHAT_ID` — ID czatu/kanału\n\nWeryfikacja podpisu (opcjonalnie): ustaw w Webhook node → Verify Header → custom: `X-Dropify-Signature` (wartość = `N8N_WEBHOOK_SECRET` z backend/.env).",
+        "height": 400,
+        "width": 420
+      },
+      "id": "sticky-1",
+      "name": "Instrukcja",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-420, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dropify-job-created",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook: dropify-job-created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "dropify-job-created-01"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{$env.TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{$env.TELEGRAM_CHAT_ID}}"
+            },
+            {
+              "name": "text",
+              "value": "=🆕 Nowe zlecenie na DROPIFY\n\n📌 {{ $json.data.title }}\n💰 Budżet: {{ $json.data.budget }} PLN\n📅 Termin: {{ $json.data.deadline }}\n📍 Lokalizacja: {{ $json.data.location || 'Zdalnie' }}\n🗂 Kategoria: {{ $json.data.category }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "telegram-1",
+      "name": "Telegram: powiadomienie",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [260, 0]
+    }
+  ],
+  "connections": {
+    "Webhook: dropify-job-created": {
+      "main": [
+        [
+          {
+            "node": "Telegram: powiadomienie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

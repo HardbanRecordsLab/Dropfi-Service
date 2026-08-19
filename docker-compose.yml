@@ -1,0 +1,133 @@
+version: "3.9"
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: dropify-db
+    environment:
+      POSTGRES_USER: dropify
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dropify_pass}
+      POSTGRES_DB: dropify
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - /var/backups/dropify:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dropify -d dropify"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: dropify-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    container_name: dropify-api
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://dropify:${POSTGRES_PASSWORD:-dropify_pass}@db:5432/dropify
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    container_name: dropify-worker
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://dropify:${POSTGRES_PASSWORD:-dropify_pass}@db:5432/dropify
+      REDIS_URL: redis://redis:6379/0
+    command: celery -A app.tasks.celery_app.celery_app worker --loglevel=info --concurrency=2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  beat:
+    build: ./backend
+    container_name: dropify-beat
+    env_file: ./backend/.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    command: celery -A app.tasks.celery_app.celery_app beat --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  flower:
+    image: mher/flower:2.0
+    container_name: dropify-flower
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: dropify-n8n
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: Europe/Warsaw
+      N8N_DEFAULT_BINARY_DATA_MODE: filesystem
+      N8N_RUNNERS_ENABLED: "true"
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      DROPIFY_API_URL: ${DROPIFY_API_URL:-http://api:8000/api}
+      DROPIFY_N8N_KEY: ${DROPIFY_N8N_KEY:-}
+    ports:
+      - "127.0.0.1:5678:5678"   # localhost only — expose via SSH tunnel or nginx
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: dropify-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  n8n_data:

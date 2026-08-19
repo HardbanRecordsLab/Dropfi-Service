@@ -1,0 +1,73 @@
+{
+  "name": "DROPIFY 02 — Match created → Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Jak to działa\n\n1. DROPIFY API wysyła event `dropify-match-created` (nowy AI match).\n2. Węzeł Slack wysyła powiadomienie o dopasowaniu.\n\nWymagane zmienne środowiskowe n8n:\n- `SLACK_WEBHOOK_URL` — incoming webhook Slack (https://api.slack.com/messaging/webhooks)\n\nMożesz rozszerzyć workflow o dowolne węzły n8n (IF, Code, Google Sheets, AI).",
+        "height": 380,
+        "width": 420
+      },
+      "id": "sticky-2",
+      "name": "Instrukcja",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-420, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dropify-match-created",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-2",
+      "name": "Webhook: dropify-match-created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "dropify-match-created-02"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SLACK_WEBHOOK_URL}}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=🤝 Nowy AI match na DROPIFY\n\n📌 Zlecenie: {{ $json.data.job_title }}\n👤 Freelancer: {{ $json.data.freelancer_name }}\n📊 Dopasowanie: {{ Math.round($json.data.score * 100) }}%\n🔁 Fallback: {{ $json.data.fallback ? 'TAK (priorytet)' : 'nie' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "slack-2",
+      "name": "Slack: powiadomienie",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [260, 0]
+    }
+  ],
+  "connections": {
+    "Webhook: dropify-match-created": {
+      "main": [
+        [
+          {
+            "node": "Slack: powiadomienie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

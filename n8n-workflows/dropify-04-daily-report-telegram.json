@@ -1,0 +1,77 @@
+{
+  "name": "DROPIFY 04 — Daily AI report → Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Jak to działa\n\n1. Codziennie o 07:00 DROPIFY wysyła event `dropify-daily-report` (metryki + anomalie + AI insights).\n2. Telegram dostaje podsumowanie dnia.\n\nWymagane zmienne środowiskowe n8n:\n- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`\n\nWskazówka: węzłem IF/Code możesz wysyłać tylko raporty z anomaliami (oszczędność tokenów i hałasu).",
+        "height": 380,
+        "width": 420
+      },
+      "id": "sticky-4",
+      "name": "Instrukcja",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-420, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dropify-daily-report",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-4",
+      "name": "Webhook: dropify-daily-report",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "dropify-daily-report-04"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{$env.TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{$env.TELEGRAM_CHAT_ID}}"
+            },
+            {
+              "name": "text",
+              "value": "=📊 DROPIFY Daily Report\n\n📋 Zlecenia: {{ $json.data.jobs }}\n🤝 Matche: {{ $json.data.matches }} (zaakceptowane: {{ $json.data.accepted }})\n📄 Kontrakty: {{ $json.data.contracts }}\n✅ Zakończone: {{ $json.data.completed }}\n💰 Przychód (prowizje): {{ $json.data.revenue }} PLN\n👥 Nowi użytkownicy: {{ $json.data.new_users }}\n🏆 Prowizje referral: {{ $json.data.commissions }}\n\n⚠️ Anomalie:\n{{ $json.data.anomalies.length ? $json.data.anomalies.join('\\n- ') : 'brak' }}\n\n🧠 AI:\n{{ $json.data.insights }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "telegram-4",
+      "name": "Telegram: daily report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [260, 0]
+    }
+  ],
+  "connections": {
+    "Webhook: dropify-daily-report": {
+      "main": [
+        [
+          {
+            "node": "Telegram: daily report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

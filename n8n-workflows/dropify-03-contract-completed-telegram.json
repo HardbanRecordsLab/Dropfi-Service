@@ -1,0 +1,77 @@
+{
+  "name": "DROPIFY 03 — Contract completed → Telegram + log",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Jak to działa\n\n1. DROPIFY API wysyła event `dropify-job-completed`.\n2. Telegram dostaje powiadomienie o zakończonym zleceniu.\n\nWymagane zmienne środowiskowe n8n:\n- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`\n\nPomysły na rozszerzenie: dodaj węzeł Google Sheets (log kontraktów), n8n → DROPIFY (`/api/n8n/trigger` action `notify`) aby poinformować klienta o ocenie, albo węzeł Email.",
+        "height": 380,
+        "width": 420
+      },
+      "id": "sticky-3",
+      "name": "Instrukcja",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-420, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dropify-job-completed",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-3",
+      "name": "Webhook: dropify-job-completed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "dropify-job-completed-03"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{$env.TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{$env.TELEGRAM_CHAT_ID}}"
+            },
+            {
+              "name": "text",
+              "value": "=✅ Zakończone zlecenie\n\n📌 {{ $json.data.title }}\n💰 Wartość: {{ $json.data.budget }} PLN\n🗂 Zakończone przez: {{ $json.data.completed_by }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "telegram-3",
+      "name": "Telegram: zakończenie",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [260, 0]
+    }
+  ],
+  "connections": {
+    "Webhook: dropify-job-completed": {
+      "main": [
+        [
+          {
+            "node": "Telegram: zakończenie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
