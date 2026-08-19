@@ -136,6 +136,59 @@ Cały backend przeszedł `python -m py_compile` bez błędów. Cały zmieniony/n
 **Frontend (Vercel):** `vercel deploy` z katalogu głównego repo, zmienna środowiskowa `NEXT_PUBLIC_API_URL` wskazująca na domenę VPS.
 **Backend (VPS):** `docker compose up -d` uruchamia `db` (Postgres+pgvector), `redis`, `api`, `worker` (Celery), `beat`, `flower`, `n8n`, `nginx`. Wymagane sekrety w `backend/.env`: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` (opcjonalnie — działa bez nich), `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (opcjonalnie — bez nich płatności działają w trybie demo), `N8N_WEBHOOK_SECRET`.
 
+## 11. Możliwe branże zastosowania DROPIFY
+
+Rdzeń platformy jest **branżowo neutralny**: zlecenie → analiza AI → dopasowanie → kontrakt z escrow etapami → AI QA → rozliczenie. Kategorie (`Photography, Coding, Design, Writing, Marketing, Video & Animation, E-commerce, Translation, Consulting`) to tylko konfiguracja, nie architektura. Dzięki **White-Label API (#F8)** ten sam silnik można postawić pod dowolną marką branżową bez forkowania kodu. Poniżej branże pogrupowane wg tego, ile pracy trzeba dołożyć.
+
+**Poziom 1 — działa dziś, bez zmian** (branża już objęta istniejącymi kategoriami):
+
+| Branża | Dlaczego pasuje |
+|---|---|
+| E-commerce i dropshipping | Rdzeń platformy — wszystkie 8 nowych funkcji zaprojektowano pod tę branżę |
+| Agencje marketingu treści / social media | Kategoria "Marketing" + AI Listing/Video Factory (F1/F6) gotowe do treści reklamowych |
+| Outsourcing software/IT | Kategoria "Coding", AI Co-Pilot (F5) naturalnie pasuje do komunikacji w projekcie dev |
+| Studia graficzne / branding | Kategoria "Design" |
+| Biura tłumaczeń i lokalizacji | Kategoria "Translation" + wielojęzyczne AI matching już wbudowane |
+| Produkcja wideo i animacji | Kategoria "Video & Animation" + generator scenariuszy (F6) |
+| Doradztwo biznesowe / consulting | Kategoria "Consulting" |
+
+**Poziom 2 — silne dopasowanie przez White-Label API (#F8), minimalne zmiany platformy:**
+
+| Branża | Dlaczego pasuje |
+|---|---|
+| Marketing nieruchomości | Foto ofert, opisy, virtual staging — pasuje wprost pod F1 (AI Listing Factory) |
+| Influencer / UGC marketing | Dopasowanie marka↔twórca to ten sam mechanizm co klient↔freelancer |
+| Produkcja podcastów i voiceover | Kategoria audio już istnieje jako umiejętność w silniku AI |
+| Publishing / self-publishing | Redakcja, projekt okładki, ghostwriting — kategoria "Writing" + F3 (umowy) |
+| Event planning | Koordynacja wielu dostawców per wydarzenie = wiele równoległych kontraktów escrow |
+| Moda i odzież | Wzornictwo, próbki, sesje foto produktowe |
+| Produkcja muzyczna i usługi dla artystów | Muzycy sesyjni, mix/mastering, cover art — naturalny obszar biorąc pod uwagę profil Hardban Records Lab |
+| Studia gamedev / app dev | Outsourcing art/dev/QA, AI Co-Pilot jako project manager zlecenia |
+| Data labeling / dane treningowe AI | Proste, powtarzalne zadania — idealne pod scoring i milestone'y |
+
+**Poziom 3 — dobre dopasowanie, wymaga rozszerzeń branżowych (weryfikacja, zgodność, struktura escrow):**
+
+| Branża | Co trzeba dodać |
+|---|---|
+| Usługi domowe / wykonawcy remontowi | Weryfikacja ubezpieczenia/licencji, model bliższy Thumbtack/Angi |
+| Usługi prawne (przegląd umów, paralegal) | Zabezpieczenia jurysdykcyjne, silnie wiąże się z F3 (AI Contract Generator) |
+| Księgowość i rachunkowość | Weryfikacja uprawnień zawodowych |
+| Edukacja i korepetycje | Weryfikacja tła, harmonogramowanie sesji — wiąże się z F7 (Time-Zone Scheduler) |
+| Logistyka i fulfillment 3PL | Integracja śledzenia przesyłek |
+| Sourcing produkcji pod marką własną (private label) | Kontrola jakości próbek — mocno wiąże się z F4 (Supplier Risk Score) |
+| Usługi dla dealerów samochodowych | Foto i listing flot pojazdów |
+| Żywność i CPG | Sourcing pod marką własną, foto jedzenia, projektowanie menu |
+
+**Poziom 4 — możliwe, ale wymaga poważnej pracy regulacyjnej przed startem:**
+
+| Branża | Bariera |
+|---|---|
+| Wsparcie administracyjne w ochronie zdrowia / transkrypcja medyczna | Zgodność RODO/HIPAA dot. danych zdrowotnych |
+| Doradztwo finansowe / przygotowanie podatków | Licencjonowanie, obowiązki powiernicze |
+| Rekrutacja / HR | Sprawdzanie przeszłości, przepisy o ochronie danych kandydatów |
+
+**Rekomendacja:** najszybsza ścieżka ekspansji to Poziom 2 przez F8 — nie wymaga zmian w rdzeniu, tylko nowej marki/domeny wpiętej pod ten sam backend przez klucz API partnera.
+
 ---
 
 # PART 2 — IN ENGLISH
@@ -265,3 +318,56 @@ The entire backend passed `python -m py_compile` with zero errors. All new/chang
 
 **Frontend (Vercel):** `vercel deploy` from the repo root, with `NEXT_PUBLIC_API_URL` set to the VPS domain.
 **Backend (VPS):** `docker compose up -d` starts `db` (Postgres+pgvector), `redis`, `api`, `worker` (Celery), `beat`, `flower`, `n8n`, `nginx`. Required secrets in `backend/.env`: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` (optional — works without them), `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (optional — payments run in demo mode without them), `N8N_WEBHOOK_SECRET`.
+
+## 11. Potential Industries & Business Verticals for DROPIFY
+
+The platform core is **industry-neutral**: job → AI analysis → matching → milestone-escrow contract → AI QA → settlement. The categories (`Photography, Coding, Design, Writing, Marketing, Video & Animation, E-commerce, Translation, Consulting`) are configuration, not architecture. Thanks to the **White-Label API (#F8)**, the same engine can be relaunched under any industry-specific brand without forking the code. Below, verticals grouped by how much extra work each one needs.
+
+**Tier 1 — works today, no changes** (already covered by existing categories):
+
+| Industry | Why it fits |
+|---|---|
+| E-commerce & dropshipping | The platform's core — all 8 new features were designed around this vertical |
+| Content marketing / social media agencies | "Marketing" category + AI Listing/Video Factory (F1/F6) ready-made for ad copy |
+| Software/IT outsourcing | "Coding" category, AI Co-Pilot (F5) fits naturally as dev-project communication |
+| Graphic design / branding studios | "Design" category |
+| Translation & localization agencies | "Translation" category + multilingual AI matching already built in |
+| Video & animation production | "Video & Animation" category + script generator (F6) |
+| Business consulting | "Consulting" category |
+
+**Tier 2 — strong fit via the White-Label API (#F8), minimal platform changes:**
+
+| Industry | Why it fits |
+|---|---|
+| Real estate marketing | Listing photos, copy, virtual staging — a direct fit for F1 (AI Listing Factory) |
+| Influencer / UGC marketing | Brand↔creator matching is the same mechanism as client↔freelancer |
+| Podcast production & voiceover | Audio already exists as a skill category in the AI engine |
+| Publishing / self-publishing | Editing, cover design, ghostwriting — "Writing" category + F3 (agreements) |
+| Event planning | Coordinating many vendors per event = many parallel escrow contracts |
+| Fashion & apparel | Pattern design, sampling, product photography |
+| Music production & artist services | Session musicians, mixing/mastering, cover art — a natural fit given the Hardban Records Lab background |
+| Game dev / app dev studios | Outsourced art/dev/QA, AI Co-Pilot as the job's project manager |
+| Data labeling / AI training data | Simple, repeatable tasks — a great fit for scoring and milestones |
+
+**Tier 3 — good fit, needs vertical-specific extensions (verification, compliance, escrow structure):**
+
+| Industry | What's needed |
+|---|---|
+| Home services / contractors | Insurance/license verification, closer to a Thumbtack/Angi model |
+| Legal services (contract review, paralegal work) | Jurisdiction safeguards, ties strongly to F3 (AI Contract Generator) |
+| Accounting & bookkeeping | Professional credential verification |
+| Education & tutoring | Background checks, session scheduling — ties to F7 (Time-Zone Scheduler) |
+| Logistics & 3PL fulfillment | Shipment tracking integration |
+| Private-label manufacturing sourcing | Sample quality control — ties strongly to F4 (Supplier Risk Score) |
+| Automotive dealership services | Fleet vehicle photography and listings |
+| Food & CPG | Private-label sourcing, food photography, menu design |
+
+**Tier 4 — possible, but needs significant regulatory work before launch:**
+
+| Industry | Barrier |
+|---|---|
+| Healthcare admin support / medical transcription | GDPR/HIPAA compliance for health data |
+| Financial advisory / tax preparation | Licensing, fiduciary obligations |
+| Recruiting / HR | Background checks, candidate data protection rules |
+
+**Recommendation:** the fastest expansion path is Tier 2 via F8 — no core changes required, just a new brand/domain wired to the same backend through a partner API key.
