@@ -7,6 +7,7 @@ import { Btn, inputStyle, labelStyle } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
+import { CATEGORIES } from "@/lib/categories";
 
 export default function NewJobPage() {
   const router = useRouter();
@@ -164,7 +165,7 @@ export default function NewJobPage() {
           <label style={labelStyle}>{t("jobs.category")}</label>
           <select style={inputStyle} value={form.category} onChange={(e) => set("category", e.target.value)}>
             <option value="">Auto (AI)</option>
-            {["Photography", "Coding", "Design", "Writing", "Marketing", "Video & Animation", "E-commerce", "Translation", "Consulting"].map((c) => (
+            {CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>

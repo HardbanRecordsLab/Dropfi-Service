@@ -15,9 +15,9 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "DROPIFY | AI Job Matching Platform for Freelancers & E-commerce",
+  title: "DROPIFY | AI Job Matching Platform for Freelancers & Businesses",
   description:
-    "Automatyczne dopasowanie zleceń e-commerce i dropshippingu do najlepszych freelancerów dzięki AI. Automatic AI job matching for freelancers, e-commerce and dropshipping. Polski + English.",
+    "Automatyczne dopasowanie zleceń do najlepszych freelancerów dzięki AI — e-commerce, dropshipping, marketing, nieruchomości, muzyka i więcej. Automatic AI job matching for freelancers across e-commerce, dropshipping, marketing, real estate, music production and more. Polski + English.",
   keywords: [
     "dropshipping",
     "freelance matching",
@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     "marketplace",
     "zlecenia",
     "dopasowanie zleceń",
+    "real estate marketing",
+    "music production",
+    "white-label marketplace API",
   ],
   authors: [{ name: "DROPIFY" }],
   openGraph: {

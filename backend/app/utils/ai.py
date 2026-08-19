@@ -13,19 +13,30 @@ logger = logging.getLogger(__name__)
 
 CATEGORIES = [
     "Photography", "Coding", "Design", "Writing", "Marketing",
-    "Video & Animation", "E-commerce", "Translation", "Consulting", "Other",
+    "Video & Animation", "E-commerce", "Translation", "Consulting",
+    # Tier-2 verticals (doku/MEGA_PLATFORM_BLUEPRINT.md §11) — same matching/escrow/
+    # AI-QA engine, just recognized categories/skills, so they route correctly
+    # instead of falling through to "Other".
+    "Real Estate", "Audio & Podcast", "Publishing", "Events", "Music Production",
+    "Data & AI Services", "Other",
 ]
 
 CATEGORY_KEYWORDS = {
     "Photography": ["photo", "foto", "fotograf", "zdjęc", "zdjec", "product shoot", "retouch", "retusz"],
-    "Coding": ["code", "developer", "program", "kod", "programista", "api", "app", "script", "software", "frontend", "backend", "wordpress"],
-    "Design": ["design", "logo", "graphic", "ui", "ux", "projekt", "grafika", "banner", "figma"],
+    "Coding": ["code", "developer", "program", "kod", "programista", "api", "app", "script", "software", "frontend", "backend", "wordpress", "game dev", "unity", "unreal"],
+    "Design": ["design", "logo", "graphic", "ui", "ux", "projekt", "grafika", "banner", "figma", "fashion", "moda", "wzornictwo"],
     "Writing": ["write", "writing", "content", "copy", "text", "blog", "artykuł", "artykul", "copywriting", "translation", "tlumacz", "tłumacz"],
-    "Marketing": ["marketing", "seo", "ads", "campaign", "social media", "reklama", "kampania", "influencer", "email marketing"],
+    "Marketing": ["marketing", "seo", "ads", "campaign", "social media", "reklama", "kampania", "influencer", "email marketing", "ugc"],
     "Video & Animation": ["video", "film", "animation", "animacj", "youtube", "motion", "editing", "montaż", "montaz", "3d"],
     "E-commerce": ["e-commerce", "ecommerce", "shopify", "woocommerce", "dropshipping", "allegro", "amazon", "sklep"],
     "Translation": ["translate", "tlumaczenie", "tłumaczenie", "translator", "language", "przekład"],
     "Consulting": ["consult", "doradztwo", "strateg", "audyt", "audit", "analiza", "growth", "konsultacj"],
+    "Real Estate": ["real estate", "nieruchomo", "property listing", "virtual staging", "mieszkanie na sprzedaż", "dom na sprzedaż", "apartament"],
+    "Audio & Podcast": ["podcast", "voiceover", "lektor", "audio production", "nagranie audio", "audiobook"],
+    "Publishing": ["publishing", "ghostwriting", "ghostwriter", "book cover", "okładka książki", "self-publishing", "redakcja książki", "wydawnictwo"],
+    "Events": ["event planning", "wydarzenie", "konferencja", "wesele", "organizacja imprezy", "organizacja eventu"],
+    "Music Production": ["music production", "produkcja muzyczna", "mixing", "mastering", "session musician", "muzyk sesyjny", "beat", "utwór muzyczny", "cover art"],
+    "Data & AI Services": ["data labeling", "data annotation", "etykietowanie danych", "adnotacja danych", "training data", "dane treningowe"],
 }
 
 SKILL_KEYWORDS = {
@@ -44,6 +55,18 @@ SKILL_KEYWORDS = {
     "data analysis": ["data", "analytics", "analiza danych", "excel", "sql", "python"],
     "audio": ["audio", "sound", "dźwięk", "dzwiek", "mix", "podcast", "music", "muzyka"],
     "retouching": ["retouch", "retusz", "photoshop", "lightroom", "korekta"],
+    "real estate": ["real estate", "nieruchomo", "property", "virtual staging"],
+    "podcast production": ["podcast", "audio editing", "montaż audio"],
+    "voiceover": ["voiceover", "lektor", "narracja"],
+    "publishing": ["publishing", "self-publishing", "wydawnictwo"],
+    "ghostwriting": ["ghostwriting", "ghostwriter"],
+    "event planning": ["event", "wydarzenie", "impreza", "wesele", "konferencja"],
+    "music production": ["music production", "produkcja muzyczna", "beat", "utwór"],
+    "mixing & mastering": ["mixing", "mastering", "mix", "master"],
+    "session musician": ["session musician", "muzyk sesyjny", "instrumentalist"],
+    "fashion design": ["fashion", "moda", "wzornictwo odzieży", "projektowanie odzieży"],
+    "game development": ["game dev", "unity", "unreal", "gra wideo", "gamedev"],
+    "data labeling": ["data labeling", "data annotation", "etykietowanie danych", "adnotacja danych"],
 }
 
 URGENCY_KEYWORDS = {
@@ -134,12 +157,14 @@ def _rule_based_analysis(title: str, description: str, budget: float) -> dict:
             urgency = level
 
     fair_price = budget
-    if category in ("Coding", "Video & Animation", "Consulting"):
+    if category in ("Coding", "Video & Animation", "Consulting", "Music Production"):
         fair_price = max(budget, 3000)
-    elif category == "Photography":
+    elif category in ("Photography", "Real Estate", "Publishing", "Events"):
         fair_price = max(budget, 1500)
-    elif category in ("Writing", "Translation"):
+    elif category in ("Writing", "Translation", "Audio & Podcast"):
         fair_price = max(budget, 500)
+    elif category == "Data & AI Services":
+        fair_price = max(budget, 300)
 
     return {
         "category": category,

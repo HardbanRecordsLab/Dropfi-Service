@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API } from "@/lib/api";
 import type { JobListItem } from "@/lib/types";
+import { CATEGORIES } from "@/lib/categories";
 
 export default function JobsPage() {
   const { user } = useAuth();
@@ -80,7 +81,7 @@ export default function JobsPage() {
           onChange={(e) => setCategory(e.target.value)}
         >
           <option value="">{t("jobs.allCategories")}</option>
-          {["Photography", "Coding", "Design", "Writing", "Marketing", "Video & Animation", "E-commerce", "Translation", "Other"].map((c) => (
+          {[...CATEGORIES, "Other"].map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>

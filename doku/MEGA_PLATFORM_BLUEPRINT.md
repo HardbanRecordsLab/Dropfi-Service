@@ -189,6 +189,8 @@ Rdzeń platformy jest **branżowo neutralny**: zlecenie → analiza AI → dopas
 
 **Rekomendacja:** najszybsza ścieżka ekspansji to Poziom 2 przez F8 — nie wymaga zmian w rdzeniu, tylko nowej marki/domeny wpiętej pod ten sam backend przez klucz API partnera.
 
+**Status: Poziom 1 i Poziom 2 wdrożone (bez nowego kodu, tylko konfiguracja).** Zamiast budować nowe funkcje, rozszerzono istniejącą taksonomię kategorii/umiejętności w `backend/app/utils/ai.py` (`CATEGORIES`, `CATEGORY_KEYWORDS`, `SKILL_KEYWORDS`, progi `fair_price`) i ujednolicono ją we frontendzie przez jedno źródło prawdy `src/lib/categories.ts`. Efekt: 6 nowych kategorii najwyższego poziomu — **Real Estate, Audio & Podcast, Publishing, Events, Music Production, Data & AI Services** — teraz poprawnie klasyfikowane przez silnik AI (Claude + fallback regułowy) i widoczne w formularzu tworzenia zlecenia oraz filtrze listy zleceń. Influencer/UGC marketing, moda i game dev nie dostały osobnych kategorii — trafiają jako słowa kluczowe pod istniejące Marketing/Design/Coding, żeby nie mnożyć kategorii ponad potrzebę. Music Production i Real Estate zaimplementowano ze szczególną dbałością o słowa kluczowe PL/EN, bo to najbardziej obiecujące kierunki z Poziomu 2.
+
 ---
 
 # PART 2 — IN ENGLISH
@@ -371,3 +373,5 @@ The platform core is **industry-neutral**: job → AI analysis → matching → 
 | Recruiting / HR | Background checks, candidate data protection rules |
 
 **Recommendation:** the fastest expansion path is Tier 2 via F8 — no core changes required, just a new brand/domain wired to the same backend through a partner API key.
+
+**Status: Tier 1 and Tier 2 are now live (no new code, configuration only).** Instead of building new features, the existing category/skill taxonomy in `backend/app/utils/ai.py` (`CATEGORIES`, `CATEGORY_KEYWORDS`, `SKILL_KEYWORDS`, `fair_price` thresholds) was extended and mirrored on the frontend through one source of truth, `src/lib/categories.ts`. Result: 6 new top-level categories — **Real Estate, Audio & Podcast, Publishing, Events, Music Production, Data & AI Services** — are now correctly classified by the AI engine (Claude + rule-based fallback) and shown in the job-creation form and job-list filter. Influencer/UGC marketing, fashion, and game dev didn't get their own categories — they route as keywords under the existing Marketing/Design/Coding categories, to avoid multiplying categories beyond what's needed. Music Production and Real Estate got extra care on PL/EN keyword coverage, since they're the most promising Tier-2 directions.

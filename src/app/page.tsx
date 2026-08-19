@@ -5,17 +5,7 @@ import PortalNav from "@/components/PortalNav";
 import Footer from "@/components/Footer";
 import { useLang } from "@/lib/i18n";
 import { Btn } from "@/components/ui";
-
-const CATEGORIES = [
-  "Photography",
-  "Coding",
-  "Design",
-  "Writing",
-  "Marketing",
-  "Video & Animation",
-  "E-commerce",
-  "Translation",
-];
+import { CATEGORIES } from "@/lib/categories";
 
 export default function Home() {
   const { t } = useLang();
