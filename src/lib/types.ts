@@ -295,3 +295,28 @@ export interface CheckoutResult {
   payment_id?: string;
   message?: string;
 }
+
+// Sprint 4 (#12) Product Source Finder
+export interface SourceFinderJob {
+  category: string;
+  title: string;
+  description: string;
+  suggested_budget: number;
+}
+
+export interface SourceFinderPlan {
+  product_summary: string;
+  suggested_jobs: SourceFinderJob[];
+  total_budget_estimate: number;
+  model?: string;
+}
+
+// Sprint 4 (#9-#11) e-commerce store integrations
+export interface StoreConnection {
+  id: string;
+  platform: "shopify" | "baselinker";
+  label: string;
+  active: boolean;
+  last_synced_at: string | null;
+  created_at: string;
+}

@@ -269,6 +269,42 @@ const DICT: Record<string, { pl: string; en: string }> = {
   "fx.convert": { pl: "Przelicz na", en: "Convert to" },
   "fx.taxNote": { pl: "Uwaga transgraniczna", en: "Cross-border note" },
 
+  // Sprint 4 (#12) Product Source Finder
+  "nav.integrations": { pl: "Integracje", en: "Integrations" },
+  "sf.title": { pl: "Product Source Finder", en: "Product Source Finder" },
+  "sf.desc": {
+    pl: "Wklej link do produktu (Amazon, Allegro, dostawca) — AI rozpisze pełny plan realizacji z sugerowanymi zleceniami.",
+    en: "Paste a product link (Amazon, Allegro, supplier) — AI breaks it into a full fulfillment plan with suggested jobs.",
+  },
+  "sf.productRef": { pl: "Link lub nazwa produktu", en: "Product link or name" },
+  "sf.run": { pl: "Zbuduj plan realizacji", en: "Build fulfillment plan" },
+  "sf.summary": { pl: "Podsumowanie", en: "Summary" },
+  "sf.suggestedJobs": { pl: "Sugerowane zlecenia", en: "Suggested jobs" },
+  "sf.totalBudget": { pl: "Szacowany łączny budżet", en: "Total estimated budget" },
+  "sf.createAll": { pl: "Utwórz wszystkie zlecenia (AI dopasuje wykonawców)", en: "Create all jobs (AI will match freelancers)" },
+  "sf.created": { pl: "Utworzono zleceń", en: "Jobs created" },
+
+  // Sprint 4 (#9-#11) store integrations
+  "int.title": { pl: "Integracje sklepowe", en: "Store integrations" },
+  "int.subtitle": {
+    pl: "Podepnij Shopify lub BaseLinker (obejmuje też Allegro) — nowe produkty/zamówienia automatycznie staną się zleceniami AI. WooCommerce: zobacz integrations/woocommerce w repozytorium.",
+    en: "Connect Shopify or BaseLinker (also covers Allegro) — new products/orders automatically become AI-matched jobs. WooCommerce: see integrations/woocommerce in the repo.",
+  },
+  "int.shopify": { pl: "Shopify", en: "Shopify" },
+  "int.baselinker": { pl: "BaseLinker (+ Allegro)", en: "BaseLinker (+ Allegro)" },
+  "int.shopDomain": { pl: "Domena sklepu (np. sklep.myshopify.com)", en: "Shop domain (e.g. store.myshopify.com)" },
+  "int.accessToken": { pl: "Token dostępu API", en: "API access token" },
+  "int.webhookSecret": { pl: "Sekret webhooka (opcjonalnie)", en: "Webhook secret (optional)" },
+  "int.label": { pl: "Nazwa konta", en: "Account label" },
+  "int.connect": { pl: "Połącz", en: "Connect" },
+  "int.disconnect": { pl: "Odłącz", en: "Disconnect" },
+  "int.sync": { pl: "Synchronizuj teraz", en: "Sync now" },
+  "int.connected": { pl: "Połączone konta", en: "Connected accounts" },
+  "int.none": { pl: "Brak połączonych sklepów", en: "No stores connected yet" },
+  "int.lastSynced": { pl: "Ostatnia synchronizacja", en: "Last synced" },
+  "int.never": { pl: "nigdy", en: "never" },
+  "int.webhookUrl": { pl: "URL webhooka Shopify", en: "Shopify webhook URL" },
+
   // Hero
   "hero.title1": {
     pl: "Automatyczne dopasowanie",

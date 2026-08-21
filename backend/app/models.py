@@ -294,6 +294,26 @@ class Listing(TimestampMixin, Base):
     user = relationship("User", foreign_keys=[user_id])
 
 
+class StoreConnection(TimestampMixin, Base):
+    """Sprint-4 e-commerce integrations (#9-#11): a merchant's Shopify or
+    BaseLinker (which itself aggregates Allegro + WooCommerce + Shopify order
+    sync) account, linked so DROPIFY can call out to the store's own API.
+    WooCommerce needs no row here — the WP plugin (integrations/woocommerce/)
+    calls the White-Label API (routes/developer.py) directly with its own key."""
+    __tablename__ = "store_connections"
+
+    id = Column(String(32), primary_key=True, default=gen_id)
+    user_id = Column(String(32), ForeignKey("users.id"), nullable=False, index=True)
+    platform = Column(String(20), nullable=False)  # shopify | baselinker
+    label = Column(String(255), default="")  # shop domain / account name
+    access_token = Column(String(500), nullable=False)
+    webhook_secret = Column(String(255), nullable=True)
+    active = Column(Boolean, default=True)
+    last_synced_at = Column(DateTime(timezone=True), nullable=True)
+
+    user = relationship("User", foreign_keys=[user_id])
+
+
 class CopilotMessage(Base):
     """#F5 AI Co-Pilot: in-job assistant Q&A log."""
     __tablename__ = "copilot_messages"

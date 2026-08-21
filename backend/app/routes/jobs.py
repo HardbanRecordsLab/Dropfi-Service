@@ -15,6 +15,7 @@ from app.utils.ai import (
 )
 from app.utils.notifications import create_notification
 from app.utils.n8n import notify_n8n
+from app.utils.jobs import create_job_and_match
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
@@ -25,7 +26,8 @@ def create_job(
     user: User = Depends(require_role("client")),
     db: Session = Depends(get_db),
 ):
-    job = Job(
+    job = create_job_and_match(
+        db,
         title=data.title,
         description=data.description,
         budget=data.budget,
@@ -35,29 +37,8 @@ def create_job(
         category=data.category,
         client_id=user.id,
         interview_questions=data.interview_questions or generate_interview_questions(data.title, data.description),
+        source="web",
     )
-    db.add(job)
-    db.commit()
-    db.refresh(job)
-
-    from app.tasks.matching import trigger_ai_matching
-    try:
-        trigger_ai_matching.delay(job.id)
-    except Exception:
-        # Celery not running in dev → run inline so the platform is "self-working"
-        trigger_ai_matching(job.id)
-
-    db.refresh(job)
-
-    notify_n8n("job-created", {
-        "job_id": job.id,
-        "title": job.title,
-        "budget": job.budget,
-        "deadline": str(job.deadline),
-        "category": job.category,
-        "location": job.location,
-        "client_id": job.client_id,
-    })
     return job
 
 

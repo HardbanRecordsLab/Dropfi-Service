@@ -686,6 +686,47 @@ def answer_copilot(job_title: str, job_description: str, context: str, question:
     )
 
 
+def generate_source_finder_plan(product_ref: str, notes: str, language: str) -> dict:
+    """Sprint 4 #12 Product Source Finder: decompose a product link/description
+    into a full fulfillment plan (suggested jobs, each postable directly)."""
+    lang_name = "Polish" if language == "pl" else "English"
+    if settings.ANTHROPIC_API_KEY:
+        data = _claude_json(
+            f"A client pasted this product reference for a dropshipping/e-commerce fulfillment plan. Respond in {lang_name}.\n"
+            f"Product reference: {product_ref[:500]}\nNotes: {notes[:500]}\n\n"
+            "Return JSON only: {\"product_summary\": \"1-2 sentences\", "
+            "\"suggested_jobs\": [{\"category\": \"one of: Photography, Writing, Video & Animation, Marketing, E-commerce\", "
+            "\"title\": \"...\", \"description\": \"...\", \"suggested_budget\": number in PLN}], "
+            "\"total_budget_estimate\": number}",
+            max_tokens=700,
+        )
+        if data and data.get("suggested_jobs"):
+            data["model"] = "claude"
+            return data
+
+    base = product_ref.strip()[:80] or ("produkt" if language == "pl" else "product")
+    if language == "pl":
+        jobs = [
+            {"category": "Photography", "title": f"Zdjęcia produktowe: {base}", "description": "Sesja zdjęciowa produktu na białym tle + lifestyle.", "suggested_budget": 400},
+            {"category": "Writing", "title": f"Opis i SEO: {base}", "description": "Opis produktu, tagi SEO, meta opis.", "suggested_budget": 200},
+            {"category": "Video & Animation", "title": f"Wideo produktowe: {base}", "description": "Krótkie wideo produktowe 15-30s pod social media.", "suggested_budget": 500},
+        ]
+        summary = f"Plan realizacji dla: {base}."
+    else:
+        jobs = [
+            {"category": "Photography", "title": f"Product photos: {base}", "description": "Product photoshoot, white background + lifestyle.", "suggested_budget": 400},
+            {"category": "Writing", "title": f"Listing copy & SEO: {base}", "description": "Product description, SEO tags, meta description.", "suggested_budget": 200},
+            {"category": "Video & Animation", "title": f"Product video: {base}", "description": "Short 15-30s product video for social media.", "suggested_budget": 500},
+        ]
+        summary = f"Fulfillment plan for: {base}."
+    return {
+        "product_summary": summary,
+        "suggested_jobs": jobs,
+        "total_budget_estimate": sum(j["suggested_budget"] for j in jobs),
+        "model": "rules",
+    }
+
+
 def job_search_text(title: str, description: str, analysis: dict | None) -> str:
     parts = [title, description]
     if analysis:

@@ -1,3 +1,5 @@
+import type { SourceFinderJob } from "./types";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 export class ApiError extends Error {
@@ -128,6 +130,20 @@ export const API = {
   generateVideoScript: (data: { product_name: string; description?: string; language?: string }) =>
     api("/factory/video-script", { method: "POST", body: JSON.stringify(data) }),
   listingHistory: () => api("/factory/history"),
+  sourceFinder: (data: { product_ref: string; notes?: string; language?: string }) =>
+    api("/factory/source-finder", { method: "POST", body: JSON.stringify(data) }),
+  sourceFinderCreateJobs: (jobs: SourceFinderJob[]) =>
+    api("/factory/source-finder/create-jobs", { method: "POST", body: JSON.stringify({ jobs }) }),
+
+  // Sprint 4 (#9-#11): e-commerce integrations
+  myStoreConnections: () => api("/integrations/mine"),
+  disconnectStore: (id: string) => api(`/integrations/${id}`, { method: "DELETE" }),
+  connectShopify: (data: { shop_domain: string; access_token: string; webhook_secret?: string }) =>
+    api("/integrations/shopify/connect", { method: "POST", body: JSON.stringify(data) }),
+  connectBaselinker: (data: { access_token: string; label?: string }) =>
+    api("/integrations/baselinker/connect", { method: "POST", body: JSON.stringify(data) }),
+  syncBaselinker: (connectionId: string) =>
+    api(`/integrations/baselinker/${connectionId}/sync`, { method: "POST" }),
 
   // #F2 Global currency & tax
   fxRates: () => api("/fx/rates", { auth: false }),

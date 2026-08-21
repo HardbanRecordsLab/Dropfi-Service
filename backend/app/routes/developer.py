@@ -7,10 +7,10 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import User, ApiKey, Job
+from app.models import User, ApiKey
 from app.schemas import PartnerJobCreate
 from app.utils.ai import generate_interview_questions
-from app.utils.n8n import notify_n8n
+from app.utils.jobs import create_job_and_match
 
 router = APIRouter(tags=["Developer / White-label API"])
 
@@ -89,7 +89,8 @@ def partner_create_job(
     """White-label endpoint: a partner agency's own branded portal posts a job
     (on behalf of its client) using the agency owner's DROPIFY account + AI matching."""
     key = _auth_partner(db, x_api_key)
-    job = Job(
+    job = create_job_and_match(
+        db,
         title=data.title,
         description=data.description,
         budget=data.budget,
@@ -98,19 +99,6 @@ def partner_create_job(
         required_skills=data.required_skills,
         client_id=key.user_id,
         interview_questions=generate_interview_questions(data.title, data.description),
+        source="white-label-api",
     )
-    db.add(job)
-    db.commit()
-    db.refresh(job)
-
-    from app.tasks.matching import trigger_ai_matching
-    try:
-        trigger_ai_matching.delay(job.id)
-    except Exception:
-        trigger_ai_matching(job.id)
-
-    notify_n8n("job-created", {
-        "job_id": job.id, "title": job.title, "budget": job.budget,
-        "source": "white-label-api", "brand": key.brand_name,
-    })
     return {"job_id": job.id, "status": "created", "brand": key.brand_name or "DROPIFY"}

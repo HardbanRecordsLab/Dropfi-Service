@@ -6,7 +6,7 @@ import { Badge, Btn, Loading, inputStyle, labelStyle } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
-import type { ListingContent, ListingHistoryItem, VideoScript } from "@/lib/types";
+import type { ListingContent, ListingHistoryItem, SourceFinderPlan, VideoScript } from "@/lib/types";
 
 const MARKETPLACES = ["generic", "shopify", "woocommerce", "allegro"];
 
@@ -26,6 +26,12 @@ export default function FactoryPage() {
   const [busyVideo, setBusyVideo] = useState(false);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Sprint 4 (#12) Product Source Finder
+  const [sourceRef, setSourceRef] = useState("");
+  const [sourcePlan, setSourcePlan] = useState<SourceFinderPlan | null>(null);
+  const [busySource, setBusySource] = useState(false);
+  const [busyCreateJobs, setBusyCreateJobs] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -77,6 +83,37 @@ export default function FactoryPage() {
       setMsg(getErrorMessage(err));
     } finally {
       setBusyVideo(false);
+    }
+  };
+
+  const runSourceFinder = async () => {
+    if (!sourceRef.trim()) {
+      setMsg(lang === "pl" ? "Podaj link lub nazwę produktu" : "Enter a product link or name");
+      return;
+    }
+    setBusySource(true);
+    try {
+      const plan = (await API.sourceFinder({ product_ref: sourceRef, language: lang })) as SourceFinderPlan;
+      setSourcePlan(plan);
+    } catch (err) {
+      setMsg(getErrorMessage(err));
+    } finally {
+      setBusySource(false);
+    }
+  };
+
+  const createJobsFromPlan = async () => {
+    if (!sourcePlan) return;
+    setBusyCreateJobs(true);
+    try {
+      const res = (await API.sourceFinderCreateJobs(sourcePlan.suggested_jobs)) as { created_job_ids: string[] };
+      setMsg(`${t("sf.created")}: ${res.created_job_ids.length}`);
+      setSourcePlan(null);
+      setSourceRef("");
+    } catch (err) {
+      setMsg(getErrorMessage(err));
+    } finally {
+      setBusyCreateJobs(false);
     }
   };
 
@@ -152,6 +189,53 @@ export default function FactoryPage() {
           <div style={{ fontWeight: "700" }} className="gold-gradient-text">{videoScript.cta}</div>
         </div>
       )}
+
+      <div className="premium-card" style={{ marginBottom: "2rem" }}>
+        <div style={{ color: "var(--accent-gold)", fontSize: "0.75rem", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "0.6rem" }}>
+          SPRINT 4 · #12
+        </div>
+        <h2 style={{ fontSize: "1.3rem", fontFamily: "var(--font-playfair)", marginBottom: "0.4rem" }}>{t("sf.title")}</h2>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.2rem" }}>{t("sf.desc")}</p>
+
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+          <input
+            style={{ ...inputStyle, flex: 1, minWidth: "260px" }}
+            value={sourceRef}
+            onChange={(e) => setSourceRef(e.target.value)}
+            placeholder={t("sf.productRef")}
+          />
+          <Btn onClick={runSourceFinder} disabled={busySource}>{busySource ? t("common.loading") : t("sf.run")}</Btn>
+        </div>
+
+        {sourcePlan && (
+          <div style={{ marginTop: "1.5rem" }}>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>{sourcePlan.product_summary}</p>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "0.6rem" }}>
+              {t("sf.suggestedJobs")}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginBottom: "1.2rem" }}>
+              {sourcePlan.suggested_jobs.map((j, i) => (
+                <div key={i} style={{ padding: "0.8rem 1rem", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)", borderRadius: "4px", display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                  <div>
+                    <Badge>{j.category}</Badge>
+                    <div style={{ fontWeight: "700", marginTop: "0.4rem" }}>{j.title}</div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{j.description}</div>
+                  </div>
+                  <div style={{ fontWeight: "800" }} className="gold-gradient-text">{j.suggested_budget.toLocaleString()} {t("common.currency")}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                {t("sf.totalBudget")}: <b className="gold-gradient-text">{sourcePlan.total_budget_estimate.toLocaleString()} {t("common.currency")}</b>
+              </div>
+              <Btn onClick={createJobsFromPlan} disabled={busyCreateJobs}>
+                {busyCreateJobs ? t("common.loading") : t("sf.createAll")}
+              </Btn>
+            </div>
+          </div>
+        )}
+      </div>
 
       <h2 style={{ fontSize: "1.3rem", fontFamily: "var(--font-playfair)", marginBottom: "1.2rem" }}>{t("factory.history")}</h2>
       {history.length === 0 ? (
