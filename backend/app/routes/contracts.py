@@ -184,12 +184,21 @@ def request_refund(
     if job:
         job.status = "open"  # reopen for new candidates (fallback chain #4)
 
+    from app.routes.payments import refund_stripe_payment
+
     refunded = 0
+    refund_failures = 0
     payments = db.query(Payment).filter(Payment.contract_id == contract.id).all()
     for payment in payments:
         if payment.status in ("paid", "pending"):
-            payment.status = "refunded"
-            refunded += payment.amount
+            if refund_stripe_payment(payment):
+                payment.status = "refunded"
+                refunded += payment.amount
+            else:
+                # Real Stripe charge exists but the refund API call failed — do NOT
+                # mark it 'refunded' in the DB (that would be an accounting lie).
+                # Contract still gets cancelled; this needs manual operator follow-up.
+                refund_failures += 1
     db.commit()
 
     freelancer = db.get(User, contract.freelancer_id)
@@ -204,15 +213,21 @@ def request_refund(
     create_notification(
         db,
         contract.client_id,
-        "Refund issued",
-        f"Your deposit for '{job.title}' was refunded ({refunded:.2f} PLN). "
-        "AI matching is looking for a new freelancer.",
+        "Refund issued" if not refund_failures else "Refund in progress",
+        (
+            f"Your deposit for '{job.title}' was refunded ({refunded:.2f} PLN). "
+            "AI matching is looking for a new freelancer."
+        ) if not refund_failures else (
+            f"Your refund for '{job.title}' could not be completed automatically. "
+            "Our team has been alerted and will process it manually."
+        ),
         "refund",
     )
     notify_n8n("refund-issued", {
         "contract_id": contract.id,
         "job_id": contract.job_id,
         "refunded": refunded,
+        "refund_failures": refund_failures,
     })
 
     # Best Match Guarantee synergy: re-match the reopened job

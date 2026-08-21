@@ -44,6 +44,8 @@ __pycache__/
 *.pyo
 backend/venv/
 backend/.venv/
+backend/tests/test_dropify.db
+.pytest_cache/
 
 # typescript
 *.tsbuildinfo

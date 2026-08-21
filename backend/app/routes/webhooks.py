@@ -13,27 +13,47 @@ logger = logging.getLogger(__name__)
 
 @router.post("/stripe")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
-    """Stripe webhook: confirms real Checkout/PaymentIntent settlement and
-    finalizes the milestone release (mirrors the instant demo-release path in
-    routes/contracts.py, but only fires once money has genuinely moved)."""
-    try:
-        payload = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid payload")
+    """Stripe webhook: verifies the event signature, confirms real Checkout/
+    PaymentIntent settlement, and finalizes the milestone release (mirrors the
+    instant demo-release path in routes/contracts.py, but only fires once
+    money has genuinely moved).
 
-    event_type = payload.get("type", "")
-    obj = payload.get("data", {}).get("object", {})
+    SECURITY: without signature verification, anyone who knows this URL could
+    POST a forged 'checkout.session.completed' body and mark any pending
+    payment as paid without ever paying. STRIPE_WEBHOOK_SECRET is therefore
+    required whenever this endpoint is used for real (Stripe-side) traffic —
+    requests are rejected outright if it isn't configured.
+    """
+    if not settings.STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(status_code=503, detail="Stripe webhooks are not configured on this server")
+
+    raw_body = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    try:
+        import stripe
+        event = stripe.Webhook.construct_event(raw_body, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+    except Exception as exc:
+        logger.warning("Stripe webhook signature verification failed (%s)", exc)
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    event_type = event.get("type", "")
+    obj = event.get("data", {}).get("object", {})
 
     if event_type in ("checkout.session.completed", "payment_intent.succeeded"):
         metadata = obj.get("metadata", {})
         contract_id = metadata.get("contract_id")
         payment_id = metadata.get("payment_id")
         milestone_id = metadata.get("milestone_id")
+        # checkout.session carries `payment_intent`; payment_intent.succeeded IS the PI (its own `id`).
+        # Stored as provider_ref so a later refund (routes/payments.py::refund_stripe_payment) can
+        # target the actual charge instead of the (unrefundable) Checkout Session id.
+        payment_intent_ref = obj.get("payment_intent") or obj.get("id", "")
 
         payment = db.get(Payment, payment_id) if payment_id else None
         if payment and payment.status != "paid":
             payment.status = "paid"
-            payment.provider_ref = obj.get("id", "")
+            payment.provider_ref = payment_intent_ref
             db.commit()
 
             contract = db.get(Contract, payment.contract_id)
@@ -54,7 +74,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     net_amount=round(contract.amount - contract.platform_fee, 2),
                     status="paid",
                     provider="stripe",
-                    provider_ref=obj.get("id", ""),
+                    provider_ref=payment_intent_ref,
                 )
                 db.add(payment)
                 db.commit()

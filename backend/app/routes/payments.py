@@ -21,6 +21,31 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 logger = logging.getLogger(__name__)
 
 
+def refund_stripe_payment(payment: Payment) -> bool:
+    """Best-effort real refund via Stripe (feature #7 Deposit Refund Guarantee).
+
+    Returns True when the payment is actually refunded, or when there was
+    never a real charge to refund (demo mode / never-completed checkout —
+    provider_ref is only set once the webhook confirms settlement). Returns
+    False when a real Stripe charge exists but the refund call itself fails,
+    so the caller can avoid marking it 'refunded' in the DB when no money
+    actually moved back.
+    """
+    if payment.provider != "stripe" or not payment.provider_ref:
+        return True
+    if not settings.STRIPE_SECRET_KEY:
+        logger.error("Cannot refund payment %s via Stripe: STRIPE_SECRET_KEY not configured", payment.id)
+        return False
+    try:
+        import stripe
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        stripe.Refund.create(payment_intent=payment.provider_ref)
+        return True
+    except Exception as exc:
+        logger.error("Stripe refund failed for payment %s (%s)", payment.id, exc)
+        return False
+
+
 @router.get("/config")
 def payments_config():
     return {
