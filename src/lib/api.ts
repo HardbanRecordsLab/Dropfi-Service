@@ -60,6 +60,13 @@ export const API = {
   login: (data: Record<string, unknown>) =>
     api("/auth/login", { method: "POST", body: JSON.stringify(data), auth: false }),
   me: () => api("/auth/me"),
+  forgotPassword: (email: string) =>
+    api("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }), auth: false }),
+  resetPassword: (token: string, new_password: string) =>
+    api("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, new_password }), auth: false }),
+  sendVerification: () => api("/auth/send-verification", { method: "POST" }),
+  verifyEmail: (token: string) =>
+    api("/auth/verify-email", { method: "POST", body: JSON.stringify({ token }), auth: false }),
 
   // Users
   updateProfile: (data: Record<string, unknown>) =>
@@ -105,6 +112,11 @@ export const API = {
   releaseMilestone: (contractId: string, milestoneId: string) =>
     api(`/contracts/${contractId}/milestones/${milestoneId}/release`, { method: "POST" }),
   requestRefund: (id: string) => api(`/contracts/${id}/request-refund`, { method: "POST" }),
+  raiseDispute: (id: string, reason: string, language: string) =>
+    api(`/contracts/${id}/dispute`, { method: "POST", body: JSON.stringify({ reason, language }) }),
+  resolveDispute: (id: string, resolution: "release_to_freelancer" | "refund_client") =>
+    api(`/contracts/${id}/resolve-dispute`, { method: "POST", body: JSON.stringify({ resolution }) }),
+  adminDisputes: () => api("/admin/disputes"),
 
   // Ratings
   createRating: (data: Record<string, unknown>) =>

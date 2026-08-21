@@ -20,6 +20,7 @@ export interface User {
   completed_jobs: number;
   plan: string;
   referral_code: string | null;
+  email_verified: boolean;
   auto_accept_enabled: boolean;
   auto_accept_min_budget: number | null;
   auto_accept_min_score: number | null;
@@ -138,6 +139,24 @@ export interface Contract {
   released_amount: number;
   refund_eligible: boolean;
   refund_reason: string;
+  dispute_reason: string | null;
+  dispute_raised_by: string | null;
+  dispute_ai_assessment: string | null;
+  disputed_at: string | null;
+  dispute_resolution: string | null;
+  resolved_at: string | null;
+}
+
+export interface AdminDispute {
+  id: string;
+  job_title: string;
+  amount: number;
+  client_email: string;
+  freelancer_email: string;
+  dispute_reason: string;
+  dispute_raised_by: string;
+  dispute_ai_assessment: string;
+  disputed_at: string | null;
 }
 
 export interface Rating {

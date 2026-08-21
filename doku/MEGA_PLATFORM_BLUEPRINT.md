@@ -123,13 +123,25 @@ Każda funkcja podąża za istniejącą konwencją kodu: endpoint FastAPI + (gdz
 
 Cały backend przeszedł `python -m py_compile` bez błędów. Cały zmieniony/nowy kod frontendu przeszedł `tsc --noEmit` (zero błędów typów) oraz `eslint` (zero ostrzeżeń) na pełnym zestawie plików.
 
-## 9. Mapa drogowa (co dalej)
+## 9. Mapa drogowa
 
-1. **Sprint 4 z doku (niezmieniony plan):** wtyczka WooCommerce, aplikacja Shopify, integracja Allegro/BaseLinker, "Product Source Finder" (dekompozycja linku produktu na plan realizacji).
-2. **Rozszerzenie F2:** podłączenie żywego API kursów walut zamiast statycznej migawki.
-3. **Rozszerzenie F5:** historia czatu widoczna też dla drugiej strony kontraktu (obecnie każdy widzi tylko własne pytania).
-4. **Aktywacja n8n:** domyślne włączenie 5 gotowych workflow przy starcie kontenera zamiast ręcznej aktywacji.
-5. **Testy automatyczne:** projekt nie ma obecnie żadnego katalogu testów — to największe ryzyko techniczne przy dalszym skalowaniu zespołu.
+### 9.1 Zrobione w tej i poprzedniej iteracji (19-20.08.2026)
+
+- ✅ **Bezpieczeństwo płatności:** weryfikacja podpisu webhooka Stripe (wcześniej można było sfałszować płatność), realne zwroty przez `stripe.Refund.create()` (wcześniej tylko zmiana statusu w bazie).
+- ✅ **Testy automatyczne:** 45 testów pytest (`cd backend && pytest`), zero infrastruktury (SQLite, brak Postgres/Redis/n8n) — pokrywają auth, matching AI, pełną pętlę escrow, oba fixy Stripe, integracje Sprint 4, reset hasła i spory.
+- ✅ **Sprint 4 (integracje e-commerce):** wtyczka WooCommerce (PHP, `integrations/woocommerce/`), Shopify (`routes/integrations.py`), BaseLinker + Allegro, Product Source Finder (#12).
+- ✅ **Reset hasła + weryfikacja e-mail:** `/forgot-password`, `/reset-password`, `/verify-email`, tokeny JWT ograniczone `purpose`-em (nie da się ich użyć jako sesji).
+- ✅ **Obsługa sporów:** `POST /contracts/{id}/dispute` (obie strony) + AI wstępna ocena + `POST /contracts/{id}/resolve-dispute` (tylko admin, decyzja: zwolnienie do wykonawcy lub zwrot klientowi).
+- ✅ **Kategorie Tier 1+2:** patrz sekcja 11 poniżej.
+
+### 9.2 Co zostało
+
+1. **Rozszerzenie F2:** podłączenie żywego API kursów walut zamiast statycznej migawki.
+2. **Rozszerzenie F5:** historia czatu widoczna też dla drugiej strony kontraktu (obecnie każdy widzi tylko własne pytania).
+3. **Aktywacja n8n:** domyślne włączenie 5 gotowych workflow przy starcie kontenera zamiast ręcznej aktywacji.
+4. **CI/CD:** brak `.github/workflows` — testy i build trzeba dziś uruchamiać ręcznie.
+5. **Fakturowanie/VAT** dla własnej prowizji platformy — potrzebne do legalnego działania w PL na większą skalę.
+6. **Rozstrzyganie sporów:** obecnie tylko dwie opcje (pełne zwolnienie / pełny zwrot) — brak podziału proporcjonalnego (np. 60/40), świadomie pominięte jako zbyt niedoprecyzowane na tę iterację.
 
 ## 10. Skrócona instrukcja wdrożenia
 
@@ -308,13 +320,25 @@ Each feature follows the codebase's existing conventions: a FastAPI endpoint + (
 
 The entire backend passed `python -m py_compile` with zero errors. All new/changed frontend code passed `tsc --noEmit` (zero type errors) and `eslint` (zero warnings) across the full file set touched.
 
-## 9. Roadmap (what's next)
+## 9. Roadmap
 
-1. **Sprint 4 from the source docs (unchanged plan):** WooCommerce plugin, Shopify app, Allegro/BaseLinker integration, "Product Source Finder" (decompose a product link into a fulfillment plan).
-2. **F2 extension:** wire in a live FX rate API instead of the static snapshot.
-3. **F5 extension:** make chat history visible to the other contract party too (currently each side only sees its own questions).
-4. **n8n activation:** enable the 5 ready-made workflows by default on container start instead of requiring manual activation.
-5. **Automated tests:** the project currently has no test directory at all — this is the single biggest technical risk as the team scales further.
+### 9.1 Done in this and the previous iteration (2026-08-19/20)
+
+- ✅ **Payment security:** Stripe webhook signature verification (previously a payment could be forged), real refunds via `stripe.Refund.create()` (previously only a DB status flip).
+- ✅ **Automated tests:** 45 pytest cases (`cd backend && pytest`), zero infrastructure needed (SQLite, no Postgres/Redis/n8n) — cover auth, AI matching, the full escrow loop, both Stripe fixes, the Sprint 4 integrations, password reset, and disputes.
+- ✅ **Sprint 4 (e-commerce integrations):** WooCommerce plugin (PHP, `integrations/woocommerce/`), Shopify (`routes/integrations.py`), BaseLinker + Allegro, Product Source Finder (#12).
+- ✅ **Password reset + email verification:** `/forgot-password`, `/reset-password`, `/verify-email`, JWTs scoped by a `purpose` claim (can't be reused as session tokens).
+- ✅ **Dispute handling:** `POST /contracts/{id}/dispute` (either party) + an AI first-pass assessment, plus `POST /contracts/{id}/resolve-dispute` (admin-only: release to freelancer or refund the client).
+- ✅ **Tier 1+2 categories:** see section 11 below.
+
+### 9.2 What's left
+
+1. **F2 extension:** wire in a live FX rate API instead of the static snapshot.
+2. **F5 extension:** make chat history visible to the other contract party too (currently each side only sees its own questions).
+3. **n8n activation:** enable the 5 ready-made workflows by default on container start instead of requiring manual activation.
+4. **CI/CD:** no `.github/workflows` yet — tests and the build still run manually today.
+5. **Invoicing/VAT** for the platform's own commission — needed to operate legally in PL at real scale.
+6. **Dispute resolution:** currently binary (full release / full refund) — no proportional split (e.g. 60/40), deliberately left out as under-specified for this iteration.
 
 ## 10. Deployment Quick Reference
 

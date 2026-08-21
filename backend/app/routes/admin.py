@@ -40,6 +40,33 @@ def admin_stats(db: Session = Depends(get_db)):
     )
 
 
+@router.get("/disputes", response_model=list[dict])
+def admin_disputes(db: Session = Depends(get_db)):
+    contracts = (
+        db.query(Contract)
+        .filter(Contract.status == "disputed")
+        .order_by(Contract.disputed_at.desc())
+        .all()
+    )
+    result = []
+    for c in contracts:
+        job = db.get(Job, c.job_id)
+        client = db.get(User, c.client_id)
+        freelancer = db.get(User, c.freelancer_id)
+        result.append({
+            "id": c.id,
+            "job_title": job.title if job else c.job_id,
+            "amount": c.amount,
+            "client_email": client.email if client else "",
+            "freelancer_email": freelancer.email if freelancer else "",
+            "dispute_reason": c.dispute_reason,
+            "dispute_raised_by": c.dispute_raised_by,
+            "dispute_ai_assessment": c.dispute_ai_assessment,
+            "disputed_at": str(c.disputed_at) if c.disputed_at else None,
+        })
+    return result
+
+
 @router.get("/users", response_model=list[dict])
 def admin_users(db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.created_at.desc()).limit(100).all()

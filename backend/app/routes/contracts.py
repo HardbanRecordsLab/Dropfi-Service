@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, require_role
 from app.models import User, Job, Contract, Payment, Milestone, Match
 from app.schemas import ContractOut, MilestoneOut
 from app.utils.fees import calculate_fee_rate
@@ -264,6 +264,123 @@ def contract_agreement(
     note = tax_hint(client.country if client else "")["note"]
     text = generate_contract_agreement(contract, job, client, freelancer, note, language)
     return {"agreement": text}
+
+
+@router.post("/{contract_id}/dispute", response_model=ContractOut)
+def raise_dispute(
+    contract_id: str,
+    reason: str = Body(..., min_length=10, embed=True),
+    language: str = Body("en", embed=True),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Either party can raise a dispute. AI gives the admin a neutral
+    first-pass assessment (semi-automated per doku's original design) — it
+    never resolves the dispute on its own; only an admin can (see below)."""
+    contract = db.get(Contract, contract_id)
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if user.id not in (contract.client_id, contract.freelancer_id):
+        raise HTTPException(status_code=403, detail="Not your contract")
+    if contract.status not in ("in_progress",):
+        raise HTTPException(status_code=400, detail="Only an in-progress contract can be disputed")
+
+    job = db.get(Job, contract.job_id)
+    from app.utils.ai import generate_dispute_mediation
+    mediation = generate_dispute_mediation(job.title, job.description, reason, contract.amount, language)
+
+    contract.status = "disputed"
+    contract.dispute_reason = reason
+    contract.dispute_raised_by = "client" if user.id == contract.client_id else "freelancer"
+    contract.dispute_ai_assessment = mediation.get("assessment", "")
+    contract.disputed_at = datetime.utcnow()
+    db.commit()
+
+    other_party_id = contract.freelancer_id if user.id == contract.client_id else contract.client_id
+    create_notification(
+        db, other_party_id, "Contract disputed",
+        f"A dispute was raised on '{job.title}'. Our team will review it shortly.", "dispute",
+    )
+    for admin in db.query(User).filter(User.role == "admin").all():
+        create_notification(
+            db, admin.id, f"⚠️ Dispute: {job.title}",
+            f"Reason: {reason[:200]} | AI assessment: {mediation.get('assessment', '')[:200]} "
+            f"| AI suggests: {mediation.get('suggested_resolution', 'manual_review')}",
+            "dispute",
+        )
+    notify_n8n("contract-disputed", {
+        "contract_id": contract.id, "job_id": contract.job_id,
+        "raised_by": contract.dispute_raised_by, "ai_suggestion": mediation.get("suggested_resolution"),
+    })
+    return _contract_payload(db, contract, user)
+
+
+@router.post("/{contract_id}/resolve-dispute", response_model=ContractOut)
+def resolve_dispute(
+    contract_id: str,
+    resolution: str = Body(..., embed=True),
+    admin: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    """Admin-only, final arbiter (doku: 'owner is final arbiter'). Two
+    resolutions: release everything not yet released to the freelancer, or
+    refund the client (via real Stripe refunds where a real charge exists)
+    and reject the remaining milestones."""
+    if resolution not in ("release_to_freelancer", "refund_client"):
+        raise HTTPException(status_code=400, detail="resolution must be 'release_to_freelancer' or 'refund_client'")
+
+    contract = db.get(Contract, contract_id)
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if contract.status != "disputed":
+        raise HTTPException(status_code=400, detail="Contract is not disputed")
+
+    remaining = (
+        db.query(Milestone)
+        .filter(Milestone.contract_id == contract.id, Milestone.status != "released")
+        .order_by(Milestone.order_index)
+        .all()
+    )
+
+    if resolution == "release_to_freelancer":
+        freelancer = db.get(User, contract.freelancer_id)
+        for m in remaining:
+            fee = round(m.amount * (contract.fee_rate or 0.08), 2)
+            db.add(Payment(
+                contract_id=contract.id, milestone_id=m.id, amount=round(m.amount, 2),
+                platform_fee=fee, net_amount=round(m.amount - fee, 2), status="paid",
+                provider="admin_override",
+                payout_method=freelancer.payout_method if freelancer else "bank",
+                payout_address=freelancer.payout_address if freelancer else None,
+            ))
+            db.commit()
+            finalize_milestone_release(db, contract, m)  # sets contract.status="completed" on the last one
+    else:
+        from app.routes.payments import refund_stripe_payment
+        for m in remaining:
+            payment = db.query(Payment).filter(Payment.milestone_id == m.id).first()
+            if payment and payment.status in ("paid", "pending"):
+                if refund_stripe_payment(payment):
+                    payment.status = "refunded"
+            m.status = "rejected"
+        contract.status = "cancelled"
+        job = db.get(Job, contract.job_id)
+        if job:
+            job.status = "open"
+
+    contract.dispute_resolution = resolution
+    contract.resolved_at = datetime.utcnow()
+    db.commit()
+
+    job = db.get(Job, contract.job_id)
+    for party_id in (contract.client_id, contract.freelancer_id):
+        create_notification(
+            db, party_id, "Dispute resolved",
+            f"The dispute on '{job.title if job else contract.job_id}' was resolved: {resolution.replace('_', ' ')}.",
+            "dispute",
+        )
+    notify_n8n("dispute-resolved", {"contract_id": contract.id, "resolution": resolution})
+    return _contract_payload(db, contract, admin)
 
 
 def _previous_released(db: Session, milestone: Milestone) -> bool:

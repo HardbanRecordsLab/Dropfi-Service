@@ -686,6 +686,42 @@ def answer_copilot(job_title: str, job_description: str, context: str, question:
     )
 
 
+def generate_dispute_mediation(job_title: str, job_description: str, dispute_reason: str, contract_amount: float, language: str) -> dict:
+    """Semi-automated dispute mediation (FULL_AUTOMATION_PASSIVE_INCOME.txt's
+    'AI detects patterns, chatbot mediation, escalates only if AI can't
+    resolve'): a neutral first-pass assessment for the admin, who stays the
+    final arbiter — this never auto-executes a resolution by itself."""
+    lang_name = "Polish" if language == "pl" else "English"
+    if settings.ANTHROPIC_API_KEY:
+        data = _claude_json(
+            "You are a neutral dispute mediator for a freelance marketplace contract. "
+            f"Respond in {lang_name}.\n"
+            f"Job: {job_title}\nDescription: {job_description[:800]}\n"
+            f"Contract amount: {contract_amount} PLN\nDispute reason (from one party): {dispute_reason[:800]}\n\n"
+            "Return JSON only: {\"assessment\": \"2-3 sentence neutral summary of the situation\", "
+            "\"suggested_resolution\": \"release_to_freelancer|refund_client|manual_review\", "
+            "\"rationale\": \"1-2 sentences explaining the suggestion\"}",
+            max_tokens=400,
+        )
+        if data and data.get("suggested_resolution"):
+            data["model"] = "claude"
+            return data
+
+    return {
+        "assessment": (
+            "Automatyczna wstępna ocena jest niedostępna — administrator powinien ręcznie przejrzeć ten spór."
+            if language == "pl" else
+            "Automated triage is unavailable — an admin should review this dispute manually."
+        ),
+        "suggested_resolution": "manual_review",
+        "rationale": (
+            "Brak klucza AI do mediacji — wynik regułowy." if language == "pl"
+            else "No AI key configured for mediation — rule-based fallback."
+        ),
+        "model": "rules",
+    }
+
+
 def generate_source_finder_plan(product_ref: str, notes: str, language: str) -> dict:
     """Sprint 4 #12 Product Source Finder: decompose a product link/description
     into a full fulfillment plan (suggested jobs, each postable directly)."""

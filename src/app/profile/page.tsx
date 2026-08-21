@@ -69,6 +69,7 @@ export default function ProfilePage() {
   const [refData, setRefData] = useState<ReferralData | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [verifyMsg, setVerifyMsg] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -147,6 +148,33 @@ export default function ProfilePage() {
         </div>
         <h1 style={{ fontSize: "2.4rem", fontFamily: "var(--font-playfair)" }}>{t("profile.title")}</h1>
       </header>
+
+      {!user.email_verified && (
+        <div
+          style={{
+            marginBottom: "2rem", padding: "1rem 1.5rem", background: "rgba(248,113,113,0.08)",
+            border: "1px solid rgba(248,113,113,0.25)", borderRadius: "4px",
+            display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem",
+          }}
+        >
+          <span style={{ fontSize: "0.85rem", color: "#f87171" }}>
+            ⚠️ {verifyMsg || t("auth.verifyEmail.notVerified")}
+          </span>
+          <Btn
+            variant="outline"
+            onClick={async () => {
+              try {
+                await API.sendVerification();
+                setVerifyMsg(t("auth.verifyEmail.resent"));
+              } catch {
+                // best-effort, ignore
+              }
+            }}
+          >
+            {t("auth.verifyEmail.resend")}
+          </Btn>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: "3rem", alignItems: "start" }}>
         <form onSubmit={save} className="premium-card" style={{ padding: "3rem", display: "flex", flexDirection: "column", gap: "1.8rem" }}>

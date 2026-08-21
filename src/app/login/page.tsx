@@ -62,7 +62,13 @@ export default function LoginPage() {
           </Btn>
         </form>
 
-        <p style={{ marginTop: "1.5rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+        <p style={{ marginTop: "1rem", fontSize: "0.85rem" }}>
+          <Link href="/forgot-password" style={{ color: "var(--text-muted)" }}>
+            {t("auth.forgotPassword")}
+          </Link>
+        </p>
+
+        <p style={{ marginTop: "0.8rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
           {t("auth.noAccount")}{" "}
           <Link href="/register" style={{ color: "var(--accent-gold)", fontWeight: "700" }}>
             {t("auth.register.title")}

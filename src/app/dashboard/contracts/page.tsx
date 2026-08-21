@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import DashShell from "@/components/DashShell";
-import { Badge, Btn, Loading } from "@/components/ui";
+import { Badge, Btn, Loading, inputStyle } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
@@ -14,6 +14,9 @@ export default function ContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
+  const [disputeOpen, setDisputeOpen] = useState<Record<string, boolean>>({});
+  const [disputeReason, setDisputeReason] = useState<Record<string, string>>({});
+  const [disputeBusy, setDisputeBusy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -53,6 +56,25 @@ export default function ContractsPage() {
       }
     } catch (err) {
       setMsg(getErrorMessage(err));
+    }
+  };
+
+  const submitDispute = async (contractId: string) => {
+    const reason = (disputeReason[contractId] || "").trim();
+    if (reason.length < 10) {
+      setMsg(lang === "pl" ? "Opisz problem dokładniej (min. 10 znaków)" : "Describe the problem in more detail (min. 10 characters)");
+      return;
+    }
+    setDisputeBusy(true);
+    try {
+      await API.raiseDispute(contractId, reason, lang);
+      setDisputeOpen((s) => ({ ...s, [contractId]: false }));
+      setMsg(t("dispute.pending"));
+      await reload();
+    } catch (err) {
+      setMsg(getErrorMessage(err));
+    } finally {
+      setDisputeBusy(false);
     }
   };
 
@@ -273,6 +295,53 @@ export default function ContractsPage() {
                         {t("refund.request")}
                       </Btn>
                     )}
+                  </div>
+                )}
+
+                {/* Dispute: raise (both parties, in_progress) */}
+                {c.status === "in_progress" && (user?.role === "client" || user?.role === "freelancer") && (
+                  <div style={{ marginTop: "1rem" }}>
+                    {disputeOpen[c.id] ? (
+                      <div style={{ padding: "1.2rem", background: "rgba(248,113,113,0.04)", border: "1px dashed rgba(248,113,113,0.3)", borderRadius: "4px" }}>
+                        <textarea
+                          style={{ ...inputStyle, resize: "vertical", minHeight: "70px" }}
+                          placeholder={t("dispute.reason")}
+                          value={disputeReason[c.id] || ""}
+                          onChange={(e) => setDisputeReason((s) => ({ ...s, [c.id]: e.target.value }))}
+                        />
+                        <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.8rem" }}>
+                          <Btn variant="danger" onClick={() => submitDispute(c.id)} disabled={disputeBusy}>
+                            {t("dispute.submit")}
+                          </Btn>
+                          <Btn variant="ghost" onClick={() => setDisputeOpen((s) => ({ ...s, [c.id]: false }))}>
+                            {t("common.cancel")}
+                          </Btn>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDisputeOpen((s) => ({ ...s, [c.id]: true }))}
+                        style={{ fontSize: "0.75rem", color: "#f87171", fontWeight: "700" }}
+                      >
+                        ⚠️ {t("dispute.raise")}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Dispute: status view (both parties, once disputed) */}
+                {c.status === "disputed" && (
+                  <div style={{ marginTop: "1.2rem", padding: "1.2rem", background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: "4px" }}>
+                    <div style={{ fontSize: "0.85rem", color: "#f87171", fontWeight: "700", marginBottom: "0.5rem" }}>
+                      ⚠️ {t("dispute.title")} — {t("dispute.raisedBy")}: {c.dispute_raised_by}
+                    </div>
+                    <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>{c.dispute_reason}</p>
+                    {c.dispute_ai_assessment && (
+                      <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+                        🤖 {t("dispute.aiAssessment")}: {c.dispute_ai_assessment}
+                      </p>
+                    )}
+                    <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>{t("dispute.pending")}</p>
                   </div>
                 )}
               </div>

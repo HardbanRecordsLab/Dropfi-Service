@@ -305,6 +305,21 @@ const DICT: Record<string, { pl: string; en: string }> = {
   "int.never": { pl: "nigdy", en: "never" },
   "int.webhookUrl": { pl: "URL webhooka Shopify", en: "Shopify webhook URL" },
 
+  // Dispute handling
+  "dispute.title": { pl: "Spór", en: "Dispute" },
+  "dispute.raise": { pl: "Zgłoś spór", en: "Raise a dispute" },
+  "dispute.reason": { pl: "Opisz problem", en: "Describe the problem" },
+  "dispute.submit": { pl: "Zgłoś do administratora", en: "Submit to admin" },
+  "dispute.raisedBy": { pl: "Zgłoszone przez", en: "Raised by" },
+  "dispute.aiAssessment": { pl: "Wstępna ocena AI", en: "AI first-pass assessment" },
+  "dispute.pending": { pl: "Spór w trakcie rozpatrywania przez administratora.", en: "Dispute pending admin review." },
+  "dispute.status": { pl: "Sporne", en: "Disputed" },
+  "admin.disputes": { pl: "Spory", en: "Disputes" },
+  "admin.disputes.none": { pl: "Brak aktywnych sporów", en: "No active disputes" },
+  "admin.disputes.resolveRelease": { pl: "Zwolnij do wykonawcy", en: "Release to freelancer" },
+  "admin.disputes.resolveRefund": { pl: "Zwróć klientowi", en: "Refund client" },
+  "admin.disputes.resolved": { pl: "Spór rozstrzygnięty", en: "Dispute resolved" },
+
   // Hero
   "hero.title1": {
     pl: "Automatyczne dopasowanie",
@@ -430,6 +445,30 @@ const DICT: Record<string, { pl: string; en: string }> = {
     pl: "Minimum 8 znaków",
     en: "Minimum 8 characters",
   },
+  "auth.forgotPassword": { pl: "Nie pamiętasz hasła?", en: "Forgot your password?" },
+  "auth.forgotPassword.title": { pl: "Reset hasła", en: "Reset password" },
+  "auth.forgotPassword.desc": {
+    pl: "Podaj e-mail — wyślemy link do zresetowania hasła.",
+    en: "Enter your email — we'll send a password reset link.",
+  },
+  "auth.forgotPassword.submit": { pl: "Wyślij link", en: "Send reset link" },
+  "auth.forgotPassword.sent": {
+    pl: "Jeśli ten e-mail jest zarejestrowany, link do resetu został wysłany.",
+    en: "If that email is registered, a reset link has been sent.",
+  },
+  "auth.resetPassword.title": { pl: "Ustaw nowe hasło", en: "Set a new password" },
+  "auth.resetPassword.new": { pl: "Nowe hasło", en: "New password" },
+  "auth.resetPassword.submit": { pl: "Zapisz nowe hasło", en: "Save new password" },
+  "auth.resetPassword.success": { pl: "Hasło zaktualizowane — możesz się zalogować.", en: "Password updated — you can now sign in." },
+  "auth.resetPassword.invalid": { pl: "Link jest nieprawidłowy lub wygasł.", en: "This link is invalid or has expired." },
+  "auth.backToLogin": { pl: "Wróć do logowania", en: "Back to sign in" },
+  "auth.verifyEmail.title": { pl: "Weryfikacja e-mail", en: "Email verification" },
+  "auth.verifyEmail.verifying": { pl: "Weryfikowanie…", en: "Verifying…" },
+  "auth.verifyEmail.success": { pl: "E-mail zweryfikowany!", en: "Email verified!" },
+  "auth.verifyEmail.invalid": { pl: "Link weryfikacyjny jest nieprawidłowy lub wygasł.", en: "This verification link is invalid or has expired." },
+  "auth.verifyEmail.notVerified": { pl: "E-mail niezweryfikowany", en: "Email not verified" },
+  "auth.verifyEmail.resend": { pl: "Wyślij ponownie link weryfikacyjny", en: "Resend verification email" },
+  "auth.verifyEmail.resent": { pl: "Wysłano link weryfikacyjny — sprawdź skrzynkę.", en: "Verification email sent — check your inbox." },
 
   // Dashboard
   "dash.title": { pl: "Panel", en: "Dashboard" },

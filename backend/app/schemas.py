@@ -71,6 +71,7 @@ class UserOut(ORMModel):
     completed_jobs: int
     plan: str
     referral_code: Optional[str] = None
+    email_verified: bool = False
     auto_accept_enabled: bool = False
     auto_accept_min_budget: Optional[float] = None
     auto_accept_min_score: Optional[float] = None
@@ -206,6 +207,12 @@ class ContractOut(ORMModel):
     released_amount: float = 0
     refund_eligible: bool = False
     refund_reason: str = ""
+    dispute_reason: Optional[str] = None
+    dispute_raised_by: Optional[str] = None
+    dispute_ai_assessment: Optional[str] = None
+    disputed_at: Optional[datetime] = None
+    dispute_resolution: Optional[str] = None
+    resolved_at: Optional[datetime] = None
 
 
 # ---------- Rating ----------

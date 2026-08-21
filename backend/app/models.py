@@ -131,6 +131,13 @@ class Contract(TimestampMixin, Base):
     fee_rate = Column(Float, nullable=False, default=0.08)
     status = Column(String(20), default="in_progress", index=True)  # in_progress | completed | cancelled | disputed
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    # Dispute handling (doku's "semi-automated AI mediation, owner is final arbiter")
+    dispute_reason = Column(Text, nullable=True)
+    dispute_raised_by = Column(String(20), nullable=True)  # client | freelancer
+    dispute_ai_assessment = Column(Text, nullable=True)
+    disputed_at = Column(DateTime(timezone=True), nullable=True)
+    dispute_resolution = Column(String(30), nullable=True)  # release_to_freelancer | refund_client
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
 
     job = relationship("Job", back_populates="contracts", foreign_keys=[job_id])
     match = relationship("Match", back_populates="contract", foreign_keys=[match_id])
