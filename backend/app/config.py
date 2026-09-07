@@ -18,6 +18,18 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str | None = None
     OPENAI_API_KEY: str | None = None
 
+    # LLM via OpenRouter (OpenAI-compatible). Free models by default; swap to a
+    # cheap paid model in .env once volume justifies it. Embeddings stay on the
+    # local zero-cost fallback unless OPENAI_API_KEY is also set.
+    OPENROUTER_API_KEY: str = ""
+    LLM_BASE_URL: str = "https://openrouter.ai/api/v1"
+    LLM_MODEL: str = "deepseek/deepseek-chat-v3-0324:free"
+    LLM_MODEL_FALLBACK: str = "meta-llama/llama-3.3-70b-instruct:free"
+    LLM_MAX_TOKENS: int = 1200
+    LLM_TIMEOUT: int = 40
+    LLM_APP_URL: str = "https://dropify.hardbanrecordslab.online"
+    LLM_APP_NAME: str = "DROPIFY"
+
     STRIPE_SECRET_KEY: str | None = None
     STRIPE_WEBHOOK_SECRET: str | None = None
     STRIPE_PUBLISHABLE_KEY: str | None = None

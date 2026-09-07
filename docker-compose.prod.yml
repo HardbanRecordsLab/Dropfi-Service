@@ -1,0 +1,96 @@
+# DROPIFY — production stack for the HBRL VPS (84.247.162.167).
+#
+# Differs from docker-compose.yml (local dev) per doku/LAUNCH_CHECKLIST.md +
+# G:\HBRL-VPS\DB-POLICY.md:
+#   - NO postgres service — uses the central `hbrl-postgres` container via the
+#     external `hbrl-db` docker network (one DB `dropify`, user `hbrl_admin`).
+#   - NO nginx service — the host nginx terminates TLS and reverse-proxies
+#     api.dropify.hardbanrecordslab.online -> 127.0.0.1:8770.
+#   - NO n8n service — reuses the existing host n8n (auto.hardbanrecordslab.online).
+#   - api/flower publish to 127.0.0.1 only (Docker bypasses UFW).
+#
+# Deploy:  docker compose -f docker-compose.prod.yml up -d --build
+#
+# Usage:   run from /opt/stacks/dropify ; backend/.env holds the secrets.
+
+name: dropify
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: dropify-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:?set REDIS_PASSWORD in backend/.env}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    container_name: dropify-api
+    env_file: ./backend/.env
+    ports:
+      - "127.0.0.1:8770:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks: [default, hbrl-db]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # reach the host's n8n on :5678
+
+  worker:
+    build: ./backend
+    container_name: dropify-worker
+    env_file: ./backend/.env
+    command: celery -A app.tasks.celery_app.celery_app worker --loglevel=info --concurrency=2
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [default, hbrl-db]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # reach the host's n8n on :5678
+
+  beat:
+    build: ./backend
+    container_name: dropify-beat
+    env_file: ./backend/.env
+    command: celery -A app.tasks.celery_app.celery_app beat --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [default, hbrl-db]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # reach the host's n8n on :5678
+
+  flower:
+    image: mher/flower:2.0
+    container_name: dropify-flower
+    command: celery flower --port=5555
+    environment:
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      FLOWER_BASIC_AUTH: "${FLOWER_USER:-admin}:${FLOWER_PASSWORD:?set FLOWER_PASSWORD in backend/.env}"
+    ports:
+      - "127.0.0.1:5556:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+
+networks:
+  hbrl-db:
+    external: true

@@ -206,8 +206,10 @@ def health(request: Request):
             pass
 
     if is_admin:
-        checks["checks"]["anthropic_api"] = "configured" if settings.ANTHROPIC_API_KEY else "missing (fallback active)"
-        checks["checks"]["openai_api"] = "configured" if settings.OPENAI_API_KEY else "missing (fallback active)"
+        checks["checks"]["llm_api"] = (
+            f"configured ({settings.LLM_MODEL})" if settings.OPENROUTER_API_KEY else "missing (rule-based fallback active)"
+        )
+        checks["checks"]["openai_embeddings"] = "configured" if settings.OPENAI_API_KEY else "missing (local embedding fallback)"
         checks["checks"]["stripe"] = "configured" if settings.STRIPE_SECRET_KEY else "missing (demo mode)"
 
     return checks

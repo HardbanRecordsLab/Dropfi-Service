@@ -1,4 +1,5 @@
-"""AI engine: job analysis (Claude with rule-based fallback) and embeddings (OpenAI with local fallback)."""
+"""AI engine: job analysis (LLM via OpenRouter with rule-based fallback) and
+embeddings (OpenAI-optional with local zero-cost fallback)."""
 import hashlib
 import json
 import logging
@@ -8,6 +9,7 @@ import re
 from sqlalchemy import text
 
 from app.config import settings
+from app.utils.llm import llm_enabled, llm_text
 
 logger = logging.getLogger(__name__)
 
@@ -198,36 +200,35 @@ Location: {location}
 """
 
 
-def claude_analysis(title: str, description: str, budget: float, deadline: str, location: str) -> dict | None:
+def llm_analysis(title: str, description: str, budget: float, deadline: str, location: str) -> dict | None:
+    prompt = ANALYSIS_PROMPT.format(
+        categories=", ".join(CATEGORIES),
+        title=title[:200],
+        description=description[:1500],
+        budget=budget,
+        deadline=deadline,
+        location=location,
+    )
+    raw = llm_text(prompt, max_tokens=400, force_json=True)
+    if not raw:
+        return None
     try:
-        from anthropic import Anthropic
-        client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        prompt = ANALYSIS_PROMPT.format(
-            categories=", ".join(CATEGORIES),
-            title=title[:200],
-            description=description[:1500],
-            budget=budget,
-            deadline=deadline,
-            location=location,
-        )
-        resp = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=400,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = resp.content[0].text.strip()
         raw = re.sub(r"^```(json)?|```$", "", raw, flags=re.MULTILINE).strip()
         data = json.loads(raw)
-        data["model"] = "claude"
+        data["model"] = "llm"
         return data
-    except Exception as exc:
-        logger.warning("Claude analysis failed (%s), using rules", exc)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("LLM analysis parse failed (%s), using rules", exc)
         return None
 
 
+# Backward-compatible alias
+claude_analysis = llm_analysis
+
+
 def analyze_job(title: str, description: str, budget: float, deadline: str, location: str) -> dict:
-    if settings.ANTHROPIC_API_KEY:
-        data = claude_analysis(title, description, budget, deadline, location)
+    if llm_enabled():
+        data = llm_analysis(title, description, budget, deadline, location)
         if data:
             return data
     return _rule_based_analysis(title, description, budget)
@@ -258,26 +259,24 @@ def _looks_polish(text: str) -> bool:
     return bool(re.search(r"[ąćęłńóśżź]", text.lower()))
 
 
-def _claude_json(prompt: str, max_tokens: int = 600) -> dict | None:
+def _llm_json(prompt: str, max_tokens: int = 600) -> dict | None:
+    raw = llm_text(prompt, max_tokens=max_tokens, force_json=True)
+    if not raw:
+        return None
     try:
-        from anthropic import Anthropic
-        client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        resp = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = resp.content[0].text.strip()
         raw = re.sub(r"^```(json)?|```$", "", raw, flags=re.MULTILINE).strip()
         return json.loads(raw)
-    except Exception as exc:
-        logger.warning("Claude JSON call failed (%s)", exc)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("LLM JSON parse failed (%s)", exc)
         return None
+
+
+_claude_json = _llm_json  # backward-compatible alias
 
 
 def generate_interview_questions(title: str, description: str) -> list[str]:
     """#1 AI Instant Interviews: generate 4-5 vetting questions for the job."""
-    if settings.ANTHROPIC_API_KEY:
+    if llm_enabled():
         data = _claude_json(
             f"Create 4-5 short interview questions to vet a freelancer for this job. "
             f"Return JSON only: {{\"questions\": [\"...\"]}}. Use the language of the job.\n"
@@ -290,7 +289,7 @@ def generate_interview_questions(title: str, description: str) -> list[str]:
 
 def score_interview(title: str, description: str, questions: list[str], answers: list[str]) -> dict:
     """#1 score freelancer answers 0-100 with feedback (Claude, fallback semantic)."""
-    if settings.ANTHROPIC_API_KEY:
+    if llm_enabled():
         data = _claude_json(
             "You are a hiring manager evaluating a freelancer's interview answers for a job.\n"
             f"Job: {title}\nDescription: {description[:1200]}\n\n"
@@ -327,7 +326,7 @@ def score_interview(title: str, description: str, questions: list[str], answers:
 
 def generate_job_draft(idea: str) -> dict:
     """#14 AI onboarding: one sentence → complete job post draft."""
-    if settings.ANTHROPIC_API_KEY:
+    if llm_enabled():
         data = _claude_json(
             "You help a client create a job post. From this short idea, generate a complete job draft.\n"
             f"Idea: {idea[:500]}\n\n"
@@ -359,7 +358,7 @@ def check_deliverables(title: str, description: str, analysis: dict | None, deli
     requirements += list((analysis or {}).get("skills", []))
     requirements += [title, description]
 
-    if settings.ANTHROPIC_API_KEY:
+    if llm_enabled():
         data = _claude_json(
             "You are a QA reviewer. The freelancer delivered work for this job.\n"
             f"Job title: {title}\nJob description: {description[:1200]}\n\n"
@@ -400,7 +399,7 @@ def generate_price_proposal(title: str, description: str, budget: float, fair_pr
     """#3 AI Price Negotiator: fair range + rationale."""
     low = round(fair_price * 0.85)
     high = round(fair_price * 1.15)
-    if settings.ANTHROPIC_API_KEY:
+    if llm_enabled():
         data = _claude_json(
             f"Job: {title}\nDescription: {description[:800]}\nClient budget: {budget} PLN\nAI fair price: {fair_price} PLN\n\n"
             "Return JSON only: {\"range_min\": number, \"range_max\": number, "
@@ -427,7 +426,7 @@ def generate_price_proposal(title: str, description: str, budget: float, fair_pr
 
 def generate_milestones(title: str, description: str, budget: float, analysis: dict | None) -> list[dict]:
     """#5 Milestones: AI-proposed payment split (title, amount, due_days)."""
-    if settings.ANTHROPIC_API_KEY:
+    if llm_enabled():
         data = _claude_json(
             f"Job: {title}\nDescription: {description[:1200]}\nBudget: {budget} PLN\n\n"
             "Propose 2-4 payment milestones for this fixed-price contract. Each milestone must have "
@@ -463,26 +462,18 @@ def generate_milestones(title: str, description: str, budget: float, analysis: d
 
 def generate_daily_insights(metrics: dict, anomalies: list[str]) -> str:
     """AI ops analyst: Claude-generated action recommendations with rule-based fallback."""
-    if settings.ANTHROPIC_API_KEY:
-        try:
-            from anthropic import Anthropic
-            client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-            prompt = (
-                "You are the operations analyst of a freelance AI-matching marketplace called DROPIFY. "
-                "Here are today's metrics (JSON) and detected anomalies (list):\n"
-                f"metrics: {json.dumps(metrics)}\n"
-                f"anomalies: {json.dumps(anomalies)}\n"
-                "Return 2-3 short, actionable recommendations for the platform owner. "
-                "Plain text only, max 150 words, no markdown headers, no bullet symbols (use '-')."
-            )
-            resp = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=300,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            return resp.content[0].text.strip()
-        except Exception as exc:
-            logger.warning("AI insights failed (%s), using rule fallback", exc)
+    if llm_enabled():
+        prompt = (
+            "You are the operations analyst of a freelance AI-matching marketplace called DROPIFY. "
+            "Here are today's metrics (JSON) and detected anomalies (list):\n"
+            f"metrics: {json.dumps(metrics)}\n"
+            f"anomalies: {json.dumps(anomalies)}\n"
+            "Return 2-3 short, actionable recommendations for the platform owner. "
+            "Plain text only, max 150 words, no markdown headers, no bullet symbols (use '-')."
+        )
+        out = llm_text(prompt, max_tokens=300)
+        if out:
+            return out
 
     if anomalies:
         return "Action needed: " + " ".join(f"- {a}" for a in anomalies)
@@ -497,27 +488,14 @@ def generate_daily_insights(metrics: dict, anomalies: list[str]) -> str:
 # ---------------------------------------------------------------------------
 
 def _claude_text(prompt: str, max_tokens: int = 500) -> str | None:
-    if not settings.ANTHROPIC_API_KEY:
-        return None
-    try:
-        from anthropic import Anthropic
-        client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        resp = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return resp.content[0].text.strip()
-    except Exception as exc:
-        logger.warning("Claude text call failed (%s)", exc)
-        return None
+    return llm_text(prompt, max_tokens=max_tokens)
 
 
 def generate_listing(product_name: str, description: str, source_url: str, language: str, marketplace: str) -> dict:
     """#F1 AI Listing Factory: turn a product name/description into a full,
     SEO-ready multi-marketplace listing (title, bullets, SEO tags, meta)."""
     lang_name = "Polish" if language == "pl" else "English"
-    if settings.ANTHROPIC_API_KEY:
+    if llm_enabled():
         data = _claude_json(
             f"You are an e-commerce copywriter preparing a {marketplace} listing. Write in {lang_name}.\n"
             f"Product: {product_name}\nNotes: {description[:800]}\nSource link: {source_url or 'none'}\n\n"
@@ -555,7 +533,7 @@ def generate_listing(product_name: str, description: str, source_url: str, langu
 def generate_video_script(product_name: str, description: str, language: str) -> dict:
     """#F6 Marketing Video Script & Voiceover Generator: 20-30s vertical ad script."""
     lang_name = "Polish" if language == "pl" else "English"
-    if settings.ANTHROPIC_API_KEY:
+    if llm_enabled():
         data = _claude_json(
             f"Write a 20-30 second vertical video ad script (TikTok/Reels) in {lang_name} for this product.\n"
             f"Product: {product_name}\nNotes: {description[:600]}\n\n"
@@ -678,11 +656,11 @@ def answer_copilot(job_title: str, job_description: str, context: str, question:
     if language == "pl":
         return (
             f"[Tryb offline AI] Zlecenie „{job_title}”: {job_description[:220]}… "
-            "Skonfiguruj ANTHROPIC_API_KEY, aby uzyskać pełne odpowiedzi AI Co-Pilota na pytania kontekstowe."
+            "Skonfiguruj OPENROUTER_API_KEY, aby uzyskać pełne odpowiedzi AI Co-Pilota na pytania kontekstowe."
         )
     return (
         f"[AI offline mode] Job \"{job_title}\": {job_description[:220]}… "
-        "Configure ANTHROPIC_API_KEY to get full AI Co-Pilot answers to contextual questions."
+        "Configure OPENROUTER_API_KEY to get full AI Co-Pilot answers to contextual questions."
     )
 
 
@@ -692,7 +670,7 @@ def generate_dispute_mediation(job_title: str, job_description: str, dispute_rea
     resolve'): a neutral first-pass assessment for the admin, who stays the
     final arbiter — this never auto-executes a resolution by itself."""
     lang_name = "Polish" if language == "pl" else "English"
-    if settings.ANTHROPIC_API_KEY:
+    if llm_enabled():
         data = _claude_json(
             "You are a neutral dispute mediator for a freelance marketplace contract. "
             f"Respond in {lang_name}.\n"
@@ -726,7 +704,7 @@ def generate_source_finder_plan(product_ref: str, notes: str, language: str) -> 
     """Sprint 4 #12 Product Source Finder: decompose a product link/description
     into a full fulfillment plan (suggested jobs, each postable directly)."""
     lang_name = "Polish" if language == "pl" else "English"
-    if settings.ANTHROPIC_API_KEY:
+    if llm_enabled():
         data = _claude_json(
             f"A client pasted this product reference for a dropshipping/e-commerce fulfillment plan. Respond in {lang_name}.\n"
             f"Product reference: {product_ref[:500]}\nNotes: {notes[:500]}\n\n"
