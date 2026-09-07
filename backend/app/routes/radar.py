@@ -70,7 +70,7 @@ def list_sources(user: User = Depends(get_current_user), db: Session = Depends(g
         out.append(RadarSourceOut(
             slug=c.slug, name=c.name, kind=c.kind, region=c.region,
             homepage=c.homepage, access=c.access, requires_key=c.requires_key,
-            enabled=c.is_enabled(),
+            enabled=registry.is_enabled(c),
             last_scan_at=last.started_at if last else None,
             last_scan_ok=last.ok if last else None,
             last_scan_error=last.error if last else None,

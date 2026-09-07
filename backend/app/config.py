@@ -110,6 +110,8 @@ class Settings(BaseSettings):
     RADAR_SCAN_INTERVAL_HOURS: int = 6
     RADAR_MAX_PER_SOURCE: int = 50
     RADAR_HTTP_TIMEOUT: int = 15
+    # Connectors parked until their public endpoint is re-verified (comma-separated slugs)
+    RADAR_DISABLED_SOURCES: str = "useme,justjoinit"
     ADZUNA_APP_ID: str = ""              # optional — enables the Adzuna connector
     ADZUNA_APP_KEY: str = ""
     USAJOBS_API_KEY: str = ""            # optional — enables the USAJOBS connector
