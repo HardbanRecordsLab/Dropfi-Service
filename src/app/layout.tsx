@@ -22,11 +22,7 @@ export const metadata: Metadata = {
   description:
     "Automatyczne dopasowanie zleceń do najlepszych freelancerów dzięki AI — e-commerce, dropshipping, marketing, nieruchomości, muzyka i więcej. Automatic AI job matching for freelancers across e-commerce, dropshipping, marketing, real estate, music production and more. Polski + English.",
   manifest: "/manifest.webmanifest",
-  icons: {
-    icon: [{ url: "/icon.png", type: "image/png" }],
-    shortcut: ["/favicon.ico"],
-    apple: [{ url: "/apple-icon.png" }],
-  },
+  // favicon.ico / icon.png / apple-icon.png in src/app/ are auto-detected by Next.
   keywords: [
     "dropshipping",
     "freelance matching",

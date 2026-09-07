@@ -107,6 +107,38 @@ server {
 
 CORS jest robione w aplikacji (FastAPI `CORSMiddleware`, `CORS_ORIGINS_EXTRA`) — nie w nginx.
 
+## Frontend → Vercel
+
+1. Vercel → **Add New… → Project** → import `HardbanRecordsLab/Dropfi-Service`
+   (Framework: Next.js — wykryje sam; Root Directory: `./`).
+2. **Environment Variables** (Production + Preview):
+   - `NEXT_PUBLIC_API_URL` = `https://api.dropify.hardbanrecordslab.online/api`
+   - `NEXT_PUBLIC_SITE_URL` = `https://dropify.hardbanrecordslab.online`
+3. **Deploy**.
+4. Project → **Settings → Domains** → dodaj `dropify.hardbanrecordslab.online`.
+   Vercel poda cel CNAME (`cname.vercel-dns.com`). W Cloudflare dodaj:
+   `CNAME  dropify  cname.vercel-dns.com`  — **Proxy status: DNS only (szara chmurka)**.
+5. Po propagacji DNS Vercel sam wystawi TLS. Sprawdź `https://dropify.hardbanrecordslab.online`.
+
+> CORS: backend już ma `CORS_ORIGINS_EXTRA=https://dropify.hardbanrecordslab.online`
+> w `backend/.env`. Jeśli zmienisz domenę frontu — zaktualizuj tam i `docker compose ... up -d`.
+
+## Stan wdrożenia (2026-09-07)
+
+| Element | Status |
+|---|---|
+| Baza `dropify` w `hbrl-postgres` | ✅ utworzona, 22 tabele (Alembic `0001_baseline`) |
+| Kontenery `dropify-{api,worker,beat,flower,redis}` | ✅ up (api healthy) |
+| `https://api.dropify.hardbanrecordslab.online/api/health` | ✅ `status: ok` (db+redis ok) |
+| `/docs` na produkcji | ✅ 404 |
+| Cert `api.dropify...` | ✅ Let's Encrypt, do 2026-12-06, auto-renew |
+| Portal Radar | ✅ 9 źródeł działa (346 leadów + 127 profili w 1. skanie); `useme`/`justjoinit` sparkowane |
+| AI matching E2E | ✅ zlecenie → match score 0.85 (Python fallback, bez pgvector) |
+| `dropify` w backupie DB | ✅ dopisane do `db-backup-all.sh` |
+| OpenRouter | ⏳ `OPENROUTER_API_KEY` puste → tryb reguł; wklej klucz do `backend/.env` + `docker compose ... up -d api` |
+| Stripe | ⏳ tryb demo; klucze live na końcu |
+| Frontend Vercel | ⏳ do zrobienia wg sekcji wyżej |
+
 ## Aktualizacja po deployu
 
 ```bash

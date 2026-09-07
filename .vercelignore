@@ -1,0 +1,9 @@
+backend
+doku
+HBRL-VPS
+n8n-workflows
+integrations
+docker-compose.yml
+docker-compose.prod.yml
+nginx.conf
+*.md
