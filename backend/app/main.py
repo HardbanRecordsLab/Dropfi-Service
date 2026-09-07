@@ -12,7 +12,7 @@ from app.database import init_db, SessionLocal
 from app.routes import (
     auth, users, jobs, matches, ratings, analytics, contracts,
     admin, plans, notifications, webhooks, referrals, n8n,
-    factory, payments, copilot, developer, fx, integrations, invoices, badges,
+    factory, payments, copilot, developer, fx, integrations, invoices, badges, radar,
 )
 
 logger = logging.getLogger(__name__)
@@ -158,6 +158,7 @@ app.include_router(fx.router, prefix="/api")
 app.include_router(integrations.router, prefix="/api")
 app.include_router(invoices.router, prefix="/api")
 app.include_router(badges.router, prefix="/api")
+app.include_router(radar.router, prefix="/api")
 
 
 @app.get("/api/health")

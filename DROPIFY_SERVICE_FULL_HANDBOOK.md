@@ -51,7 +51,7 @@ Platforma jest dwujęzyczna (PL/EN, przełącznik jednym kliknięciem) i zaproje
 ┌─────────────────────────────────────┐
 │   BACKEND — FastAPI (Python 3.11+)  │
 │   Hosting: własny VPS (Docker)      │
-│   JWT auth, 19 routerów             │
+│   JWT auth, 20 routerów             │
 └───┬─────────┬─────────┬─────────────┘
     │         │         │
 ┌───▼───┐ ┌──▼───┐ ┌───▼───────────┐
@@ -250,7 +250,7 @@ dropify/
 │   │   ├── models.py           ← 15 modeli ORM
 │   │   ├── schemas.py          ← Schemas Pydantic
 │   │   ├── deps.py             ← Dependencies FastAPI
-│   │   ├── routes/             ← 19 routerów API
+│   │   ├── routes/             ← 20 routerów API
 │   │   │   ├── auth.py         ← /api/auth/* (register, login, me, forgot/reset, verify)
 │   │   │   ├── users.py        ← /api/users/* (profile, search, risk-score)
 │   │   │   ├── jobs.py         ← /api/jobs/* (CRUD, generate, deliverables, fair-price)
@@ -271,11 +271,18 @@ dropify/
 │   │   │   ├── fx.py           ← /api/fx/* (waluty, podatki)
 │   │   │   ├── integrations.py ← /api/integrations/* (Shopify, BaseLinker)
 │   │   │   ├── invoices.py     ← /api/invoices/* (#5 fakturowanie VAT)
-│   │   │   └── badges.py       ← /api/badges/* (#17 skill badges)
+│   │   │   ├── badges.py       ← /api/badges/* (#17 skill badges)
+│   │   │   └── radar.py        ← /api/radar/* (Portal Radar — skan portali)
+│   │   ├── connectors/          ← Portal Radar: 1 plik = 1 portal (oficjalne API/RSS)
+│   │   │   ├── base.py         ← Connector, NormalizedListing/Talent
+│   │   │   ├── _http.py        ← wspólny httpx + parser RSS/Atom (stdlib)
+│   │   │   ├── registry.py     ← ALL_CONNECTORS
+│   │   │   └── *.py            ← remotive, remoteok, arbeitnow, useme, justjoinit, github, ...
 │   │   ├── tasks/
 │   │   │   ├── celery_app.py   ← Konfiguracja Celery
 │   │   │   ├── matching.py     ← AI matching pipeline
 │   │   │   ├── reports.py      ← Daily summary, auto-complete
+│   │   │   ├── radar.py        ← Portal Radar: scan_all_sources (beat co 6 h)
 │   │   │   └── n8n_sync.py     ← Synchronizacja z n8n
 │   │   └── utils/
 │   │       ├── ai.py           ← Claude API (analiza, listing, copilot, umowy)
@@ -329,7 +336,7 @@ dropify/
 └── eslint.config.mjs
 ```
 
-### Modele bazy danych (15 tabel)
+### Modele bazy danych (21 tabel)
 
 | Model | Tabela | Opis |
 |-------|--------|------|
@@ -349,6 +356,11 @@ dropify/
 | `Listing` | `listings` | Wygenerowane oferty (#F1) |
 | `StoreConnection` | `store_connections` | Połączenia sklepowe (Shopify/BaseLinker) |
 | `CopilotMessage` | `copilot_messages` | Wiadomości AI Co-Pilot (#F5) |
+| `Invoice` | `invoices` | Faktury za prowizję platformy (#5) |
+| `Badge` | `badges` | Skill badge'e (#17) |
+| `ExternalListing` | `external_listings` | Portal Radar: leady zleceń z zewn. portali |
+| `ExternalTalent` | `external_talent` | Portal Radar: profile wykonawców z zewn. platform |
+| `RadarScanLog` | `radar_scan_logs` | Portal Radar: log skanów (per źródło) |
 
 ---
 
@@ -557,6 +569,27 @@ docker compose logs -f n8n        # n8n
 | `/api/badges/user/{user_id}` | GET | Nie | Badge'e użytkownika (portfolio) |
 | `/api/badges/stats` | GET | Tak | Statystyki mojego portfolio |
 | `/api/badges/stats/{user_id}` | GET | Nie | Statystyki portfolio użytkownika |
+
+### Portal Radar — skan portali globalnych (popyt + podaż)
+
+Skan zewnętrznych portali **wyłącznie przez oficjalne API / RSS** (`app/connectors/`),
+upsert z deduplikacją po `(source, external_id)`, task Celery `app.tasks.radar.scan_all_sources`
+(beat co `RADAR_SCAN_INTERVAL_HOURS`, domyślnie 6 h). Import leada tworzy realny `Job`
+przez `create_job_and_match` (właściciel: bot `RADAR_BOT_EMAIL`) → uruchamia AI matching.
+Konektory startowe: Remotive, RemoteOK, Arbeitnow, Jobicy, We Work Remotely,
+HN „Who is hiring", Useme (PL), Just Join IT (PL), Adzuna*, USAJOBS*, GitHub, Stack Overflow, dev.to
+(`*` = wymaga klucza). Konfiguracja: `doku/INTEGRACJE_ROZSZERZENIA.md`.
+
+| Endpoint | Method | Auth | Opis |
+|----------|--------|------|------|
+| `/api/radar/sources` | GET | Tak | Lista konektorów + ostatni skan + liczniki |
+| `/api/radar/scan` | POST | Admin | Uruchom skan (`?source=` lub wszystkie) |
+| `/api/radar/listings` | GET | Tak | Leady zleceń (filtry: source, category, remote, q, status) |
+| `/api/radar/talent` | GET | Tak | Profile wykonawców (filtry: source, skill, q, status) |
+| `/api/radar/listings/{id}/import` | POST | Client/Admin | Import leada → nowy Job + AI matching |
+| `/api/radar/listings/{id}/dismiss` | POST | Client/Admin | Odrzuć lead |
+| `/api/radar/talent/{id}/status` | POST | Client/Admin | `contacted` / `invited` / `dismissed` |
+| `/api/radar/stats` | GET | Tak | Liczniki wg statusu + stan źródeł |
 
 Interactive docs: `https://your-backend/docs` (Swagger UI).
 

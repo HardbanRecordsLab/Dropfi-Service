@@ -92,6 +92,18 @@ class Settings(BaseSettings):
     INVOICE_CURRENCY: str = "PLN"
     INVOICE_PAYMENT_DAYS: int = 14
 
+    # Portal Radar — global scan of external job portals (official APIs / RSS only)
+    RADAR_ENABLED: bool = True
+    RADAR_BOT_EMAIL: str = "radar@dropify.app"   # owns jobs imported from external leads
+    RADAR_SCAN_INTERVAL_HOURS: int = 6
+    RADAR_MAX_PER_SOURCE: int = 50
+    RADAR_HTTP_TIMEOUT: int = 15
+    ADZUNA_APP_ID: str = ""              # optional — enables the Adzuna connector
+    ADZUNA_APP_KEY: str = ""
+    USAJOBS_API_KEY: str = ""            # optional — enables the USAJOBS connector
+    USAJOBS_EMAIL: str = ""
+    GITHUB_TOKEN: str = ""               # optional — raises GitHub talent-search rate limit
+
     @property
     def cors_origins(self) -> list[str]:
         extra = getattr(self, "CORS_ORIGINS_EXTRA", "")

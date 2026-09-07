@@ -30,6 +30,7 @@ export default function DashShell({ children }: { children: React.ReactNode }) {
     ...(isClient ? [{ href: "/dashboard/freelancers", label: t("nav.talent") }] : []),
     ...(isClient ? [{ href: "/dashboard/factory", label: t("nav.factory") }] : []),
     ...(isClient ? [{ href: "/dashboard/integrations", label: t("nav.integrations") }] : []),
+    { href: "/dashboard/radar", label: t("nav.radar") },
     { href: "/dashboard/developer", label: t("nav.developer") },
     { href: "/profile", label: t("nav.profile") },
     ...(isAdmin ? [{ href: "/admin", label: t("nav.admin") }] : []),
