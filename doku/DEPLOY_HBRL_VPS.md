@@ -134,6 +134,8 @@ CORS jest robione w aplikacji (FastAPI `CORSMiddleware`, `CORS_ORIGINS_EXTRA`) �
 | Cert `api.dropify...` | ✅ Let's Encrypt, do 2026-12-06, auto-renew |
 | Portal Radar | ✅ 9 źródeł działa (346 leadów + 127 profili w 1. skanie); `useme`/`justjoinit` sparkowane |
 | AI matching E2E | ✅ zlecenie → match score 0.85 (Python fallback, bez pgvector) |
+| Celery async | ✅ `.delay()` z api kolejkuje → worker przetwarza (job create 0.5 s zamiast 4.5 s) |
+| Beat scheduler | ✅ `portal-radar-scan` co 6 h + pozostałe zadania |
 | `dropify` w backupie DB | ✅ dopisane do `db-backup-all.sh` |
 | OpenRouter | ⏳ `OPENROUTER_API_KEY` puste → tryb reguł; wklej klucz do `backend/.env` + `docker compose ... up -d api` |
 | Stripe | ⏳ tryb demo; klucze live na końcu |
