@@ -115,6 +115,8 @@ CORS jest robione w aplikacji (FastAPI `CORSMiddleware`, `CORS_ORIGINS_EXTRA`) �
    - `NEXT_PUBLIC_API_URL` = `https://api.dropify.hardbanrecordslab.online/api`
    - `NEXT_PUBLIC_SITE_URL` = `https://dropify.hardbanrecordslab.online`
 3. **Deploy**.
+   > ⚠️ `NEXT_PUBLIC_*` są wstrzykiwane przy buildzie — po dodaniu/zmianie tych zmiennych
+   > trzeba zrobić **Redeploy** (Deployments → ⋯ → Redeploy), inaczej front dalej woła `localhost:8000`.
 4. Project → **Settings → Domains** → dodaj `dropify.hardbanrecordslab.online`.
    Vercel poda cel CNAME (`cname.vercel-dns.com`). W Cloudflare dodaj:
    `CNAME  dropify  cname.vercel-dns.com`  — **Proxy status: DNS only (szara chmurka)**.
