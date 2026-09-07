@@ -7,7 +7,7 @@ router = APIRouter(prefix="/fx", tags=["Currency & Tax"])
 
 @router.get("/rates")
 def fx_rates():
-    """#F2 Global Currency & Tax Auto-Engine: static PLN-based FX snapshot."""
+    """#F2 Global Currency & Tax Auto-Engine: live PLN-based FX rates (Frankfurter API, 1h cache, static fallback)."""
     return rates()
 
 

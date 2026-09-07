@@ -1,12 +1,12 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_user, require_role
-from app.models import User, Job, Match, Contract, Rating
+from app.models import User, Job, Match, Contract
 from app.schemas import JobCreate, JobUpdate, JobOut, JobListItem
 from app.utils.ai import (
     analyze_job, embed_text, job_search_text,
@@ -87,7 +87,7 @@ def recommended_jobs(
     def rank(job: Job) -> float:
         job_skills = set(job.required_skills or [])
         skill_overlap = len(skills & job_skills) / max(1, len(skills | job_skills))
-        days_left = (job.deadline - datetime.utcnow().date()).days
+        days_left = (job.deadline - datetime.now(timezone.utc).date()).days
         recency = 1.0 if days_left >= 7 else (0.7 if days_left >= 3 else 0.3)
         return skill_overlap * 0.6 + recency * 0.2 + (1.0 / (1 + job.budget / 5000)) * 0.2
 
@@ -230,7 +230,7 @@ def complete_job(
         job.status = "completed"
         if contract:
             contract.status = "completed"
-            contract.completed_at = datetime.utcnow()
+            contract.completed_at = datetime.now(timezone.utc)
             freelancer = db.get(User, contract.freelancer_id)
             if freelancer:
                 freelancer.total_jobs += 1
@@ -251,7 +251,7 @@ def complete_job(
         if contract.status != "in_progress":
             raise HTTPException(status_code=400, detail="Contract already closed")
         contract.status = "completed"
-        contract.completed_at = datetime.utcnow()
+        contract.completed_at = datetime.now(timezone.utc)
         job.status = "completed"
         freelancer = db.get(User, contract.freelancer_id)
         if freelancer:

@@ -45,6 +45,8 @@ class User(TimestampMixin, Base):
     referred_by = Column(String(32), nullable=True)
     is_active = Column(Boolean, default=True)
     email_verified = Column(Boolean, default=False)
+    rodo_consent = Column(Boolean, default=False)
+    rodo_consent_at = Column(DateTime, nullable=True)
     embedding_json = Column(Text, nullable=True)
     # AI Proposal Autopilot (#13)
     auto_accept_enabled = Column(Boolean, default=False)
@@ -53,6 +55,8 @@ class User(TimestampMixin, Base):
     # Stablecoin payouts (#6)
     payout_method = Column(String(20), default="bank")  # bank | stablecoin
     payout_address = Column(String(255), nullable=True)
+    # Tax identification
+    nip = Column(String(20), nullable=True)  # Polish NIP (tax ID)
 
     jobs_created = relationship("Job", back_populates="client", foreign_keys="Job.client_id")
     matches = relationship("Match", back_populates="freelancer", foreign_keys="Match.freelancer_id")
@@ -331,3 +335,57 @@ class CopilotMessage(Base):
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Invoice(TimestampMixin, Base):
+    """#5 Invoicing: platform fee invoices for B2B accounting."""
+    __tablename__ = "invoices"
+
+    id = Column(String(32), primary_key=True, default=gen_id)
+    invoice_number = Column(String(50), unique=True, nullable=False, index=True)
+    contract_id = Column(String(32), ForeignKey("contracts.id"), nullable=False, index=True)
+    payer_id = Column(String(32), ForeignKey("users.id"), nullable=False, index=True)
+
+    # Seller (platform)
+    seller_name = Column(String(200), nullable=False)
+    seller_address = Column(Text, nullable=False)
+    seller_nip = Column(String(20), nullable=True)
+
+    # Buyer
+    buyer_name = Column(String(200), nullable=False)
+    buyer_address = Column(Text, nullable=True)
+    buyer_nip = Column(String(20), nullable=True)
+    buyer_country = Column(String(10), nullable=True)
+
+    # Line items
+    subtotal = Column(Float, nullable=False)
+    vat_rate = Column(Float, nullable=False, default=0.23)
+    vat_amount = Column(Float, nullable=False, default=0.0)
+    total = Column(Float, nullable=False)
+    currency = Column(String(5), default="PLN")
+
+    # Status
+    status = Column(String(20), default="issued", index=True)  # issued | paid | cancelled
+    issued_at = Column(DateTime(timezone=True), server_default=func.now())
+    due_date = Column(DateTime(timezone=True), nullable=True)
+    paid_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Traceability
+    payment_ids = Column(JSON, default=list)  # list of Payment.id included in this invoice
+
+    contract = relationship("Contract", foreign_keys=[contract_id])
+    payer = relationship("User", foreign_keys=[payer_id])
+
+
+class Badge(TimestampMixin, Base):
+    """#17 Skill Badges: AI-verified skill assessments for freelancers."""
+    __tablename__ = "badges"
+
+    id = Column(String(32), primary_key=True, default=gen_id)
+    user_id = Column(String(32), ForeignKey("users.id"), nullable=False, index=True)
+    badge_key = Column(String(50), nullable=False, index=True)  # e.g. "photography", "copywriting"
+    score = Column(Integer, nullable=False, default=0)  # 0-100
+    level = Column(String(10), nullable=False, default="bronze")  # bronze | silver | gold
+    verified_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])

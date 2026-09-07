@@ -3,6 +3,7 @@ Stripe payment fix — each exercises its offline/no-API-key fallback path,
 same design as every other AI feature in this codebase."""
 from datetime import date, timedelta
 
+from app.utils import currency as currency_utils
 from tests.helpers import auth_headers, make_freelancer, register
 
 
@@ -33,6 +34,30 @@ def test_f6_video_script_generator(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["hook"] and body["script"] and body["cta"]
+
+
+def test_f2_currency_and_tax_live_provider_override(monkeypatch, client):
+    class FakeResponse:
+        def __init__(self, payload):
+            self._payload = payload
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return self._payload
+
+    monkeypatch.setattr(
+        currency_utils.httpx,
+        "get",
+        lambda *args, **kwargs: FakeResponse({"rates": {"PLN": 1.0, "EUR": 1.42, "USD": 1.31}}),
+    )
+
+    resp = client.get("/api/fx/rates")
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["rates"]["EUR"] == 1.42
+    assert payload["source"] == "live"
 
 
 def test_f2_currency_and_tax(client):
@@ -80,6 +105,41 @@ def test_f5_ai_copilot(client):
     history = client.get(f"/api/copilot/history/{job['id']}", headers=auth_headers(token))
     assert history.status_code == 200
     assert len(history.json()) == 1
+
+
+def test_f5_ai_copilot_history_visible_to_contract_parties(client):
+    client_data = register(client, "client")
+    client_token = client_data["access_token"]
+    freelancer_data = make_freelancer(client, "Content strategist and editor", ["writing", "blogging"])
+    freelancer_token = freelancer_data["access_token"]
+
+    job = client.post(
+        "/api/jobs",
+        headers=auth_headers(client_token),
+        json={
+            "title": "SEO blog plan",
+            "description": "Need a content plan for a new product launch.",
+            "budget": 950,
+            "deadline": str(date.today() + timedelta(days=12)),
+        },
+    ).json()
+
+    matches = client.get(f"/api/matches/job/{job['id']}", headers=auth_headers(client_token)).json()
+    match = next(m for m in matches if m["freelancer_id"] == freelancer_data["user"]["id"])
+    resp = client.post(f"/api/matches/{match['id']}/accept", headers=auth_headers(freelancer_token))
+    assert resp.status_code == 200, resp.text
+
+    ask = client.post(
+        "/api/copilot/ask",
+        headers=auth_headers(client_token),
+        json={"job_id": job["id"], "question": "How much is the project budget?", "language": "en"},
+    )
+    assert ask.status_code == 200, ask.text
+
+    history = client.get(f"/api/copilot/history/{job['id']}", headers=auth_headers(freelancer_token))
+    assert history.status_code == 200, history.text
+    assert len(history.json()) >= 1
+    assert history.json()[0]["question"] == "How much is the project budget?"
 
 
 def test_f7_timezone_scheduler(client):

@@ -17,6 +17,7 @@ def register(client: TestClient, role: str, **extra) -> dict:
         "role": role,
         "first_name": extra.pop("first_name", "Test"),
         "last_name": extra.pop("last_name", role.capitalize()),
+        "rodo_consent": True,
         **extra,
     }
     resp = client.post("/api/auth/register", json=payload)

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -15,7 +15,7 @@ def dashboard_analytics(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     month_start = now.replace(day=1)
     result = AnalyticsOut(role=user.role)
 

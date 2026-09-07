@@ -1,6 +1,6 @@
 import hashlib
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
@@ -74,7 +74,7 @@ def _auth_partner(db: Session, x_api_key: str | None) -> ApiKey:
     key = db.query(ApiKey).filter(ApiKey.key_hash == _hash_key(x_api_key), ApiKey.active == True).first()  # noqa: E712
     if not key:
         raise HTTPException(status_code=401, detail="Invalid or revoked API key")
-    key.last_used_at = datetime.utcnow()
+    key.last_used_at = datetime.now(timezone.utc)
     key.request_count = (key.request_count or 0) + 1
     db.commit()
     return key

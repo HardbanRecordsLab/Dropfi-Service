@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 from app.config import settings
 from app.database import get_db
@@ -20,6 +21,9 @@ EMAIL_VERIFY_MINUTES = 24 * 60
 
 @router.post("/register", response_model=Token, status_code=201)
 def register(data: UserCreate, db: Session = Depends(get_db)):
+    if not data.rodo_consent:
+        raise HTTPException(status_code=400, detail="RODO consent is required")
+
     existing = db.query(User).filter(User.email == data.email.lower()).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -39,6 +43,8 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
         company=data.company,
         referral_code=make_referral_code(data.email),
         referred_by=referred_by,
+        rodo_consent=True,
+        rodo_consent_at=datetime.now(timezone.utc),
     )
     db.add(user)
     db.commit()

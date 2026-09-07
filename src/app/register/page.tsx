@@ -19,6 +19,7 @@ export default function RegisterPage() {
     company: "",
     role: "client",
     referral_code: "",
+    rodo_consent: false,
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,10 @@ export default function RegisterPage() {
     setError("");
     if (form.password.length < 8) {
       setError(t("auth.passwordHint"));
+      return;
+    }
+    if (!form.rodo_consent) {
+      setError(t("auth.rodo.required"));
       return;
     }
     setLoading(true);
@@ -116,6 +121,25 @@ export default function RegisterPage() {
             <label style={labelStyle}>{t("auth.referral")}</label>
             <input style={inputStyle} value={form.referral_code} onChange={(e) => set("referral_code", e.target.value)} />
           </div>
+
+          <label style={{ display: "flex", alignItems: "flex-start", gap: "0.8rem", cursor: "pointer", fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+            <input
+              type="checkbox"
+              checked={form.rodo_consent}
+              onChange={(e) => set("rodo_consent", String(e.target.checked))}
+              style={{ marginTop: "0.2rem", accentColor: "var(--accent-gold)", width: "16px", height: "16px", flexShrink: 0 }}
+            />
+            <span>
+              {t("auth.rodo.consent")}{" "}
+              <Link href="/privacy" style={{ color: "var(--accent-gold)", textDecoration: "underline" }}>
+                {t("auth.rodo.privacyLink")}
+              </Link>{" "}
+              {t("auth.rodo.and")}{" "}
+              <Link href="/terms" style={{ color: "var(--accent-gold)", textDecoration: "underline" }}>
+                {t("auth.rodo.termsLink")}
+              </Link>.
+            </span>
+          </label>
 
           {error && (
             <div style={{ padding: "0.9rem 1rem", background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: "4px", color: "#f87171", fontSize: "0.85rem" }}>

@@ -17,6 +17,7 @@ class UserCreate(BaseModel):
     last_name: str = ""
     company: str = ""
     referral_code: str = ""
+    rodo_consent: bool = False
 
 
 class UserLogin(BaseModel):
@@ -49,6 +50,8 @@ class UserUpdate(BaseModel):
     # Stablecoin payouts (#6)
     payout_method: Optional[str] = None
     payout_address: Optional[str] = None
+    # Tax
+    nip: Optional[str] = None
 
 
 class UserOut(ORMModel):
@@ -77,6 +80,7 @@ class UserOut(ORMModel):
     auto_accept_min_score: Optional[float] = None
     payout_method: str = "bank"
     payout_address: Optional[str] = None
+    nip: Optional[str] = None
     created_at: datetime
 
 

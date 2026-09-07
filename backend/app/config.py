@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "DROPIFY API"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
     DATABASE_URL: str = "postgresql://dropify:dropify_pass@localhost:5432/dropify"
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -27,7 +27,32 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None
     SMTP_PASSWORD: str | None = None
-    SENDER_EMAIL: str = "noreply@dropify.app"
+    SENDER_EMAIL: str = "dropify@hardbanrecordslab.online"
+
+    # Legal / Ownership
+    PLATFORM_OWNER: str = "HardbanRecords Lab"
+    PLATFORM_OWNER_LOCATION: str = "Wiercień, Poland"
+    SUPPORT_EMAIL: str = "dropify@hardbanrecordslab.online"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        import warnings
+        defaults = []
+        if self.SECRET_KEY == "change-me-in-production-please-32-chars-min":
+            defaults.append("SECRET_KEY")
+        if self.ADMIN_PASSWORD == "admin123":
+            defaults.append("ADMIN_PASSWORD")
+
+        if defaults and not self.DEBUG:
+            raise ValueError(
+                f"Cannot start with default values in production mode. "
+                f"Set real values in .env for: {', '.join(defaults)}"
+            )
+        elif defaults:
+            warnings.warn(
+                f"Using default values ({', '.join(defaults)}) — set real values in .env for production!",
+                stacklevel=2,
+            )
 
     # n8n automation (self-hosted workflow engine)
     N8N_WEBHOOK_URL: str = ""      # e.g. http://n8n:5678/webhook
@@ -55,6 +80,17 @@ class Settings(BaseSettings):
 
     SEED_DEMO_DATA: bool = False
     DAILY_SUMMARY_ENABLED: bool = True
+
+    # Invoicing / VAT
+    PLATFORM_NIP: str = ""              # Polish tax ID (NIP) — required for real invoices
+    PLATFORM_VAT_EU: str = ""           # VAT-UE number for cross-border EU invoices
+    PLATFORM_REGISTRATION: str = ""     # CEIDG/KRS registration number
+    PLATFORM_ADDRESS: str = "Wiercień, Poland"
+    PLATFORM_NAME: str = "HardbanRecords Lab"
+    INVOICE_PREFIX: str = "DROPIFY"
+    INVOICE_VAT_RATE: float = 0.23      # 23% VAT for PL domestic
+    INVOICE_CURRENCY: str = "PLN"
+    INVOICE_PAYMENT_DAYS: int = 14
 
     @property
     def cors_origins(self) -> list[str]:

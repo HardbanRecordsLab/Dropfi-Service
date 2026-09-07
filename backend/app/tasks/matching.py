@@ -58,7 +58,10 @@ def run_matching(db: Session, job_id: str) -> int:
         logger.info("No freelancer candidates for job %s", job_id)
         return 0
 
-    # 4. Score
+    # 4. Score — use lower threshold for local embeddings (no API key)
+    from app.config import settings
+    min_score = 0.20 if not settings.OPENAI_API_KEY else 0.45
+
     scored = []
     for user_id, semantic in candidates:
         freelancer = db.get(User, user_id)
@@ -73,7 +76,7 @@ def run_matching(db: Session, job_id: str) -> int:
             fair_price=float(analysis.get("fair_price") or job.budget),
             deadline=job.deadline,
         )
-        if score >= 0.45:
+        if score >= min_score:
             scored.append((freelancer, score))
 
     scored.sort(key=lambda x: x[1], reverse=True)

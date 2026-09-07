@@ -820,7 +820,10 @@ def semantic_search_freelancers(db, query_vec: list[float], limit: int = 20, exc
         except (TypeError, json.JSONDecodeError):
             continue
         sim = cosine_similarity(query_vec, vec)
-        if sim > 0.15:
+        # Lower threshold for local embeddings (no API key) — they produce lower similarity
+        from app.config import settings
+        min_sim = 0.05 if not settings.OPENAI_API_KEY else 0.15
+        if sim > min_sim:
             scored.append((user_id, sim))
     scored.sort(key=lambda x: x[1], reverse=True)
     return scored[: limit * 4]

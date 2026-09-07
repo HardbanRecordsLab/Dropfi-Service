@@ -3,14 +3,14 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Notification
+from app.models import User, Notification
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 
 @router.get("", response_model=list[dict])
 def list_notifications(
-    user: "User" = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     items = (
@@ -35,7 +35,7 @@ def list_notifications(
 
 @router.post("/read-all")
 def read_all(
-    user: "User" = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     db.query(Notification).filter(Notification.user_id == user.id, Notification.read == False).update({"read": True})
