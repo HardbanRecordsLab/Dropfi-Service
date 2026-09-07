@@ -10,6 +10,11 @@ celery_app = Celery(
     include=["app.tasks.matching", "app.tasks.reports", "app.tasks.radar"],
 )
 
+# Make this the app that bare @shared_task binds to — without it, .delay()
+# calls from the FastAPI process fall back to Celery's implicit default app
+# (AMQP on localhost) and silently run inline instead of being queued.
+celery_app.set_default()
+
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],
@@ -19,6 +24,10 @@ celery_app.conf.update(
     task_track_started=True,
     worker_max_tasks_per_child=200,
     broker_connection_retry_on_startup=True,
+    broker_connection_timeout=4,   # keep a failed producer publish short
+    # Tests set CELERY_TASK_ALWAYS_EAGER=1 to run tasks in-process, no broker.
+    task_always_eager=settings.CELERY_TASK_ALWAYS_EAGER,
+    task_eager_propagates=False,
 )
 
 celery_app.conf.beat_schedule = {

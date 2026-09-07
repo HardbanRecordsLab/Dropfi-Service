@@ -103,6 +103,7 @@ def seed_admin_and_demo() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("DROPIFY starting up...")
+    import app.tasks.celery_app  # noqa: F401 — binds shared_task to our Celery app so .delay() queues
     init_db()
     seed_admin_and_demo()
     yield

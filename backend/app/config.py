@@ -92,6 +92,7 @@ class Settings(BaseSettings):
 
     SEED_DEMO_DATA: bool = False
     DAILY_SUMMARY_ENABLED: bool = True
+    CELERY_TASK_ALWAYS_EAGER: bool = False   # tests set this True (run tasks in-process)
 
     # Invoicing / VAT
     PLATFORM_NIP: str = ""              # Polish tax ID (NIP) — required for real invoices
