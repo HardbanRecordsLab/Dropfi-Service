@@ -70,7 +70,7 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    networks: [default, hbrl-db]
+    networks: [default]   # beat only needs the redis broker, not the DB
     extra_hosts:
       - "host.docker.internal:host-gateway"   # reach the host's n8n on :5678
 
@@ -92,5 +92,7 @@ volumes:
   redis_data:
 
 networks:
+  default:
+    name: dropify_default
   hbrl-db:
     external: true
