@@ -209,14 +209,14 @@ def llm_analysis(title: str, description: str, budget: float, deadline: str, loc
         deadline=deadline,
         location=location,
     )
-    raw = llm_text(prompt, max_tokens=400, force_json=True)
+    raw = llm_text(prompt, max_tokens=700, force_json=True)
     if not raw:
         return None
     data = _extract_json(raw)
     if isinstance(data, dict):
         data["model"] = "llm"
         return data
-    logger.warning("LLM analysis parse failed, using rules; raw head: %r", raw[:160])
+    logger.warning("LLM analysis parse failed, using rules; raw head: %r", raw[:200])
     return None
 
 
@@ -257,31 +257,60 @@ def _looks_polish(text: str) -> bool:
     return bool(re.search(r"[ąćęłńóśżź]", text.lower()))
 
 
+def _repair_truncated_json(s: str) -> str:
+    """Best-effort close of a JSON object/array cut off by a token limit."""
+    s = s.strip()
+    # drop a trailing incomplete token like  "descriptio
+    s = re.sub(r',\s*"[^"]*$', "", s)
+    s = re.sub(r':\s*"[^"]*$', ': ""', s)
+    s = re.sub(r',\s*$', "", s)
+    stack = []
+    in_str = False
+    esc = False
+    for ch in s:
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            stack.append("}" if ch == "{" else "]")
+        elif ch in "}]" and stack:
+            stack.pop()
+    if in_str:
+        s += '"'
+    return s + "".join(reversed(stack))
+
+
 def _extract_json(raw: str):
     """Pull the first JSON object/array out of an LLM reply that may wrap it in
-    prose or ``` fences. Returns the parsed value or None."""
+    prose or ``` fences, or truncate it at a token limit. Returns value or None."""
     raw = raw.strip()
     raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE).strip()
-    try:
-        return json.loads(raw)
-    except Exception:  # noqa: BLE001
-        pass
-    m = re.search(r"(\{.*\}|\[.*\])", raw, flags=re.DOTALL)
+    m = re.search(r"[\{\[]", raw)
     if m:
+        raw = raw[m.start():]
+    for candidate in (raw, _repair_truncated_json(raw)):
         try:
-            return json.loads(m.group(1))
+            return json.loads(candidate)
         except Exception:  # noqa: BLE001
-            pass
+            continue
     return None
 
 
 def _llm_json(prompt: str, max_tokens: int = 600) -> dict | None:
-    raw = llm_text(prompt, max_tokens=max_tokens, force_json=True)
+    # Free models are verbose — give JSON calls headroom so replies aren't truncated.
+    raw = llm_text(prompt, max_tokens=max(max_tokens, 1000), force_json=True)
     if not raw:
         return None
     data = _extract_json(raw)
     if data is None:
-        logger.warning("LLM JSON parse failed; raw head: %r", raw[:160])
+        logger.warning("LLM JSON parse failed; raw head: %r", raw[:200])
     return data
 
 

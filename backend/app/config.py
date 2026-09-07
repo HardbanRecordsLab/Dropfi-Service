@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "openrouter/free"
     LLM_MODEL_FALLBACK: str = "nvidia/nemotron-3-super-120b-a12b:free"
     LLM_JSON_MODE: bool = False   # send response_format=json_object (paid models only)
-    LLM_MAX_TOKENS: int = 1200
+    LLM_MAX_TOKENS: int = 2500
     LLM_TIMEOUT: int = 40
     LLM_APP_URL: str = "https://dropify.hardbanrecordslab.online"
     LLM_APP_NAME: str = "DROPIFY"

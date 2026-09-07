@@ -1,0 +1,8 @@
+{
+  "//": "Infisical project for this repo = 'dropify' (org HardbanRecordsLab, self-hosted vault.hardbanrecordslab.online). Fill workspaceId from the panel: Project Settings -> Project ID. Cutover: create the project + a machine identity, import backend/.env, then run the api via `infisical run --env=prod -- <cmd>` or regenerate backend/.env with /root/vps-scripts/infisical-sync-env.sh.",
+  "workspaceId": "REPLACE_WITH_dropify_PROJECT_ID",
+  "defaultEnvironment": "prod",
+  "gitBranchToEnvironmentMapping": {
+    "main": "prod"
+  }
+}

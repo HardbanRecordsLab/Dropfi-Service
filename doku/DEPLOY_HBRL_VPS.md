@@ -141,6 +141,19 @@ CORS jest robione w aplikacji (FastAPI `CORSMiddleware`, `CORS_ORIGINS_EXTRA`) �
 | Stripe | ⏳ tryb demo; klucze live na końcu |
 | Frontend Vercel | ⏳ do zrobienia wg sekcji wyżej |
 
+## Sekrety → Infisical (docelowo, wg DB-POLICY §4)
+
+Teraz: `backend/.env` na VPS (chmod 600). Docelowo źródłem prawdy jest Infisical
+(`vault.hardbanrecordslab.online`), a `.env` na serwerze jest generowany.
+
+Cutover (wymaga panelu Infisical — przez tunel SSH):
+1. Panel → nowy projekt **`dropify`** (env `prod`) + **Machine Identity** (token).
+2. Import `backend/.env` do projektu (panel → Import .env, albo `infisical secrets set`).
+3. Wpisz `workspaceId` (Project ID) do `.infisical.json` w repo.
+4. Na VPS: `infisical run --projectId <id> --env prod -- docker compose -f docker-compose.prod.yml up -d`
+   **albo** dopisz `dropify` do `/root/vps-scripts/infisical-sync-env.sh` i generuj `backend/.env` z Vault.
+5. Usuń wrażliwe wartości z `backend/.env`, zostaw tylko referencję / pusty plik.
+
 ## Aktualizacja po deployu
 
 ```bash
