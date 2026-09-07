@@ -23,8 +23,12 @@ class Settings(BaseSettings):
     # local zero-cost fallback unless OPENAI_API_KEY is also set.
     OPENROUTER_API_KEY: str = ""
     LLM_BASE_URL: str = "https://openrouter.ai/api/v1"
-    LLM_MODEL: str = "deepseek/deepseek-chat-v3-0324:free"
-    LLM_MODEL_FALLBACK: str = "meta-llama/llama-3.3-70b-instruct:free"
+    # openrouter/free = OpenRouter auto-routes to a working free model.
+    # For paid quality/price, e.g. LLM_MODEL=deepseek/deepseek-chat-v3-0324
+    # or meta-llama/llama-3.3-70b-instruct (both a few cents / million tokens).
+    LLM_MODEL: str = "openrouter/free"
+    LLM_MODEL_FALLBACK: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    LLM_JSON_MODE: bool = False   # send response_format=json_object (paid models only)
     LLM_MAX_TOKENS: int = 1200
     LLM_TIMEOUT: int = 40
     LLM_APP_URL: str = "https://dropify.hardbanrecordslab.online"

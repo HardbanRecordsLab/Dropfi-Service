@@ -63,7 +63,9 @@ def llm_text(
 
     cap = min(max_tokens or settings.LLM_MAX_TOKENS, settings.LLM_MAX_TOKENS)
     kwargs = {"messages": messages, "max_tokens": cap, "temperature": temperature}
-    if force_json:
+    # Only send response_format when explicitly enabled — many free models 400 on it.
+    # Callers already strip code fences + json.loads, and prompts ask for JSON only.
+    if force_json and settings.LLM_JSON_MODE:
         kwargs["response_format"] = {"type": "json_object"}
 
     client = _get_client()
