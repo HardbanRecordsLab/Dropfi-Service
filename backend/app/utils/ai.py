@@ -212,14 +212,12 @@ def llm_analysis(title: str, description: str, budget: float, deadline: str, loc
     raw = llm_text(prompt, max_tokens=400, force_json=True)
     if not raw:
         return None
-    try:
-        raw = re.sub(r"^```(json)?|```$", "", raw, flags=re.MULTILINE).strip()
-        data = json.loads(raw)
+    data = _extract_json(raw)
+    if isinstance(data, dict):
         data["model"] = "llm"
         return data
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("LLM analysis parse failed (%s), using rules", exc)
-        return None
+    logger.warning("LLM analysis parse failed, using rules; raw head: %r", raw[:160])
+    return None
 
 
 # Backward-compatible alias
@@ -259,16 +257,32 @@ def _looks_polish(text: str) -> bool:
     return bool(re.search(r"[ąćęłńóśżź]", text.lower()))
 
 
+def _extract_json(raw: str):
+    """Pull the first JSON object/array out of an LLM reply that may wrap it in
+    prose or ``` fences. Returns the parsed value or None."""
+    raw = raw.strip()
+    raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE).strip()
+    try:
+        return json.loads(raw)
+    except Exception:  # noqa: BLE001
+        pass
+    m = re.search(r"(\{.*\}|\[.*\])", raw, flags=re.DOTALL)
+    if m:
+        try:
+            return json.loads(m.group(1))
+        except Exception:  # noqa: BLE001
+            pass
+    return None
+
+
 def _llm_json(prompt: str, max_tokens: int = 600) -> dict | None:
     raw = llm_text(prompt, max_tokens=max_tokens, force_json=True)
     if not raw:
         return None
-    try:
-        raw = re.sub(r"^```(json)?|```$", "", raw, flags=re.MULTILINE).strip()
-        return json.loads(raw)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("LLM JSON parse failed (%s)", exc)
-        return None
+    data = _extract_json(raw)
+    if data is None:
+        logger.warning("LLM JSON parse failed; raw head: %r", raw[:160])
+    return data
 
 
 _claude_json = _llm_json  # backward-compatible alias
