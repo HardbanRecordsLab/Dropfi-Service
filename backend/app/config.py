@@ -79,6 +79,7 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:8080",
     ]
+    CORS_ORIGINS_EXTRA: str = ""   # comma-separated extra origins (prod frontend domain)
 
     PLATFORM_FEE_RATE: float = 0.08
     FEE_RATE_TOP: float = 0.05
