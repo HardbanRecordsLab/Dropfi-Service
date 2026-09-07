@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -56,7 +56,7 @@ def refund_eligibility(db: Session, contract: Contract) -> tuple[bool, str]:
     """#7 Deposit Refund Guarantee: no-show freelancer → client gets money back."""
     if contract.status != "in_progress":
         return False, "Contract is not in progress"
-    age = datetime.utcnow() - contract.created_at
+    age = datetime.now(timezone.utc).replace(tzinfo=None) - contract.created_at
     if age < timedelta(days=REFUND_NO_SHOW_DAYS):
         return False, f"Refund available after {REFUND_NO_SHOW_DAYS} days without work ({REFUND_NO_SHOW_DAYS - age.days} day(s) left)"
     milestones = (
@@ -117,7 +117,7 @@ def submit_milestone(
         raise HTTPException(status_code=400, detail="Previous milestones must be released first")
 
     milestone.status = "in_review"
-    milestone.submitted_at = datetime.utcnow()
+    milestone.submitted_at = datetime.now(timezone.utc)
     db.commit()
 
     create_notification(
@@ -293,7 +293,7 @@ def raise_dispute(
     contract.dispute_reason = reason
     contract.dispute_raised_by = "client" if user.id == contract.client_id else "freelancer"
     contract.dispute_ai_assessment = mediation.get("assessment", "")
-    contract.disputed_at = datetime.utcnow()
+    contract.disputed_at = datetime.now(timezone.utc)
     db.commit()
 
     other_party_id = contract.freelancer_id if user.id == contract.client_id else contract.client_id
@@ -319,15 +319,20 @@ def raise_dispute(
 def resolve_dispute(
     contract_id: str,
     resolution: str = Body(..., embed=True),
+    freelancer_pct: float = Body(100.0, embed=True),
     admin: User = Depends(require_role("admin")),
     db: Session = Depends(get_db),
 ):
-    """Admin-only, final arbiter (doku: 'owner is final arbiter'). Two
-    resolutions: release everything not yet released to the freelancer, or
-    refund the client (via real Stripe refunds where a real charge exists)
-    and reject the remaining milestones."""
-    if resolution not in ("release_to_freelancer", "refund_client"):
-        raise HTTPException(status_code=400, detail="resolution must be 'release_to_freelancer' or 'refund_client'")
+    """Admin-only, final arbiter (doku: 'owner is final arbiter'). Three
+    resolutions:
+    - release_to_freelancer: release everything to the freelancer
+    - refund_client: refund everything to the client
+    - proportional: split by freelancer_pct (0-100) — release % to freelancer, refund rest to client
+    """
+    if resolution not in ("release_to_freelancer", "refund_client", "proportional"):
+        raise HTTPException(status_code=400, detail="resolution must be 'release_to_freelancer', 'refund_client', or 'proportional'")
+    if resolution == "proportional" and not (0 <= freelancer_pct <= 100):
+        raise HTTPException(status_code=400, detail="freelancer_pct must be between 0 and 100")
 
     contract = db.get(Contract, contract_id)
     if not contract:
@@ -355,6 +360,35 @@ def resolve_dispute(
             ))
             db.commit()
             finalize_milestone_release(db, contract, m)  # sets contract.status="completed" on the last one
+    elif resolution == "proportional":
+        from app.routes.payments import refund_stripe_payment
+        freelancer = db.get(User, contract.freelancer_id)
+        pct = freelancer_pct / 100.0
+        for m in remaining:
+            freelancer_amount = round(m.amount * pct, 2)
+            client_refund_amount = round(m.amount - freelancer_amount, 2)
+            # Release portion to freelancer
+            if freelancer_amount > 0:
+                fee = round(freelancer_amount * (contract.fee_rate or 0.08), 2)
+                db.add(Payment(
+                    contract_id=contract.id, milestone_id=m.id, amount=freelancer_amount,
+                    platform_fee=fee, net_amount=round(freelancer_amount - fee, 2), status="paid",
+                    provider="admin_override",
+                    payout_method=freelancer.payout_method if freelancer else "bank",
+                    payout_address=freelancer.payout_address if freelancer else None,
+                ))
+                db.commit()
+                m.status = "released"
+                m.released_at = datetime.now(timezone.utc)
+            # Refund portion to client
+            if client_refund_amount > 0:
+                payment = db.query(Payment).filter(Payment.milestone_id == m.id).first()
+                if payment and payment.status in ("paid", "pending"):
+                    if refund_stripe_payment(payment):
+                        payment.status = "refunded"
+            if freelancer_amount <= 0:
+                m.status = "rejected"
+        contract.status = "completed"
     else:
         from app.routes.payments import refund_stripe_payment
         for m in remaining:
@@ -369,7 +403,7 @@ def resolve_dispute(
             job.status = "open"
 
     contract.dispute_resolution = resolution
-    contract.resolved_at = datetime.utcnow()
+    contract.resolved_at = datetime.now(timezone.utc)
     db.commit()
 
     job = db.get(Job, contract.job_id)
@@ -413,7 +447,7 @@ def finalize_milestone_release(db: Session, contract: Contract, milestone: Miles
     when Stripe is configured, closing the platform's biggest functional gap.
     """
     milestone.status = "released"
-    milestone.released_at = datetime.utcnow()
+    milestone.released_at = datetime.now(timezone.utc)
     db.commit()
 
     remaining = (
@@ -423,7 +457,7 @@ def finalize_milestone_release(db: Session, contract: Contract, milestone: Miles
     )
     if remaining == 0:
         contract.status = "completed"
-        contract.completed_at = datetime.utcnow()
+        contract.completed_at = datetime.now(timezone.utc)
         job = db.get(Job, contract.job_id)
         if job:
             job.status = "completed"

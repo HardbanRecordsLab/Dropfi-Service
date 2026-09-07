@@ -2,7 +2,8 @@ import uuid
 from datetime import datetime, date
 
 from sqlalchemy import (
-    Column, String, Text, Float, Date, DateTime, Boolean, ForeignKey, JSON, Integer
+    Column, String, Text, Float, Date, DateTime, Boolean, ForeignKey, JSON, Integer,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -45,6 +46,8 @@ class User(TimestampMixin, Base):
     referred_by = Column(String(32), nullable=True)
     is_active = Column(Boolean, default=True)
     email_verified = Column(Boolean, default=False)
+    rodo_consent = Column(Boolean, default=False)
+    rodo_consent_at = Column(DateTime, nullable=True)
     embedding_json = Column(Text, nullable=True)
     # AI Proposal Autopilot (#13)
     auto_accept_enabled = Column(Boolean, default=False)
@@ -53,6 +56,8 @@ class User(TimestampMixin, Base):
     # Stablecoin payouts (#6)
     payout_method = Column(String(20), default="bank")  # bank | stablecoin
     payout_address = Column(String(255), nullable=True)
+    # Tax identification
+    nip = Column(String(20), nullable=True)  # Polish NIP (tax ID)
 
     jobs_created = relationship("Job", back_populates="client", foreign_keys="Job.client_id")
     matches = relationship("Match", back_populates="freelancer", foreign_keys="Match.freelancer_id")
@@ -87,6 +92,9 @@ class Job(TimestampMixin, Base):
     deliverables = Column(Text, nullable=True)
     deliverable_url = Column(Text, nullable=True)
     deliverable_report = Column(JSON, nullable=True)
+    # Portal Radar: set when this job was imported from an external portal lead
+    external_source = Column(String(50), nullable=True)
+    external_url = Column(Text, nullable=True)
 
     client = relationship("User", back_populates="jobs_created", foreign_keys=[client_id])
     matches = relationship("Match", back_populates="job", cascade="all, delete-orphan", foreign_keys="Match.job_id")
@@ -331,3 +339,134 @@ class CopilotMessage(Base):
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Invoice(TimestampMixin, Base):
+    """#5 Invoicing: platform fee invoices for B2B accounting."""
+    __tablename__ = "invoices"
+
+    id = Column(String(32), primary_key=True, default=gen_id)
+    invoice_number = Column(String(50), unique=True, nullable=False, index=True)
+    contract_id = Column(String(32), ForeignKey("contracts.id"), nullable=False, index=True)
+    payer_id = Column(String(32), ForeignKey("users.id"), nullable=False, index=True)
+
+    # Seller (platform)
+    seller_name = Column(String(200), nullable=False)
+    seller_address = Column(Text, nullable=False)
+    seller_nip = Column(String(20), nullable=True)
+
+    # Buyer
+    buyer_name = Column(String(200), nullable=False)
+    buyer_address = Column(Text, nullable=True)
+    buyer_nip = Column(String(20), nullable=True)
+    buyer_country = Column(String(10), nullable=True)
+
+    # Line items
+    subtotal = Column(Float, nullable=False)
+    vat_rate = Column(Float, nullable=False, default=0.23)
+    vat_amount = Column(Float, nullable=False, default=0.0)
+    total = Column(Float, nullable=False)
+    currency = Column(String(5), default="PLN")
+
+    # Status
+    status = Column(String(20), default="issued", index=True)  # issued | paid | cancelled
+    issued_at = Column(DateTime(timezone=True), server_default=func.now())
+    due_date = Column(DateTime(timezone=True), nullable=True)
+    paid_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Traceability
+    payment_ids = Column(JSON, default=list)  # list of Payment.id included in this invoice
+
+    contract = relationship("Contract", foreign_keys=[contract_id])
+    payer = relationship("User", foreign_keys=[payer_id])
+
+
+class Badge(TimestampMixin, Base):
+    """#17 Skill Badges: AI-verified skill assessments for freelancers."""
+    __tablename__ = "badges"
+
+    id = Column(String(32), primary_key=True, default=gen_id)
+    user_id = Column(String(32), ForeignKey("users.id"), nullable=False, index=True)
+    badge_key = Column(String(50), nullable=False, index=True)  # e.g. "photography", "copywriting"
+    score = Column(Integer, nullable=False, default=0)  # 0-100
+    level = Column(String(10), nullable=False, default="bronze")  # bronze | silver | gold
+    verified_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])
+
+
+# ---------------------------------------------------------------------------
+# Portal Radar: global scan of external job portals (demand + supply side)
+# via official APIs / RSS / feeds only. See app/connectors/.
+# ---------------------------------------------------------------------------
+
+class ExternalListing(TimestampMixin, Base):
+    """A job/gig lead discovered on an external portal (demand side)."""
+    __tablename__ = "external_listings"
+    __table_args__ = (UniqueConstraint("source", "external_id", name="uq_ext_listing_source_id"),)
+
+    id = Column(String(32), primary_key=True, default=gen_id)
+    source = Column(String(50), nullable=False, index=True)       # connector slug
+    external_id = Column(String(255), nullable=False, index=True)  # id within that source
+    url = Column(Text, nullable=False)
+    title = Column(String(500), nullable=False)
+    description = Column(Text, default="")
+    company = Column(String(255), default="")
+    budget_min = Column(Float, nullable=True)
+    budget_max = Column(Float, nullable=True)
+    budget_text = Column(String(120), default="")
+    currency = Column(String(10), default="")
+    category = Column(String(120), default="", index=True)
+    tags = Column(JSON, default=list)
+    location = Column(String(255), default="")
+    is_remote = Column(Boolean, default=False, index=True)
+    language = Column(String(10), default="en")
+    contact = Column(String(255), default="")     # email/handle when the source provides one
+    posted_at = Column(DateTime(timezone=True), nullable=True)
+    fetched_at = Column(DateTime(timezone=True), server_default=func.now())
+    status = Column(String(20), default="new", index=True)  # new | reviewed | imported | dismissed
+    imported_job_id = Column(String(32), ForeignKey("jobs.id"), nullable=True)
+    raw = Column(JSON, default=dict)
+
+    imported_job = relationship("Job", foreign_keys=[imported_job_id])
+
+
+class ExternalTalent(TimestampMixin, Base):
+    """A contractor/specialist profile discovered on an external platform
+    (supply side). Legal sources only: GitHub, StackOverflow, dev.to, ..."""
+    __tablename__ = "external_talent"
+    __table_args__ = (UniqueConstraint("source", "external_id", name="uq_ext_talent_source_id"),)
+
+    id = Column(String(32), primary_key=True, default=gen_id)
+    source = Column(String(50), nullable=False, index=True)
+    external_id = Column(String(255), nullable=False, index=True)
+    url = Column(Text, nullable=False)
+    name = Column(String(255), nullable=False)
+    headline = Column(String(500), default="")
+    skills = Column(JSON, default=list)
+    location = Column(String(255), default="")
+    country = Column(String(100), default="")
+    rate_text = Column(String(120), default="")
+    rating = Column(Float, nullable=True)
+    followers = Column(Integer, nullable=True)
+    portfolio_url = Column(Text, default="")
+    avatar_url = Column(Text, default="")
+    fetched_at = Column(DateTime(timezone=True), server_default=func.now())
+    status = Column(String(20), default="new", index=True)  # new | contacted | invited | dismissed
+    raw = Column(JSON, default=dict)
+
+
+class RadarScanLog(Base):
+    """One row per connector run — observability for the Portal Radar scans."""
+    __tablename__ = "radar_scan_logs"
+
+    id = Column(String(32), primary_key=True, default=gen_id)
+    source = Column(String(50), nullable=False, index=True)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    finished_at = Column(DateTime(timezone=True), nullable=True)
+    listings_found = Column(Integer, default=0)
+    listings_new = Column(Integer, default=0)
+    talents_found = Column(Integer, default=0)
+    talents_new = Column(Integer, default=0)
+    ok = Column(Boolean, default=True, index=True)
+    error = Column(Text, nullable=True)

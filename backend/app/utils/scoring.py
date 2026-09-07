@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 
 def calculate_match_score(
@@ -21,7 +21,7 @@ def calculate_match_score(
     else:
         price_fit = 0.2
 
-    days_left = (deadline - datetime.utcnow().date()).days
+    days_left = (deadline - datetime.now(timezone.utc).date()).days
     if days_left >= 7:
         availability = 1.0
     elif days_left >= 3:

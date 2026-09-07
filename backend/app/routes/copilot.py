@@ -54,10 +54,15 @@ def copilot_history(
     job = db.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    _assert_participant(db, job, user)
+    contract = _assert_participant(db, job, user)
+    participant_ids = {job.client_id}
+    if contract:
+        participant_ids.add(contract.freelancer_id)
+    if user.id not in participant_ids and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not part of this job")
     msgs = (
         db.query(CopilotMessage)
-        .filter(CopilotMessage.job_id == job_id, CopilotMessage.user_id == user.id)
+        .filter(CopilotMessage.job_id == job_id)
         .order_by(CopilotMessage.created_at)
         .limit(50)
         .all()

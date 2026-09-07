@@ -181,6 +181,18 @@ export const API = {
   listApiKeys: () => api("/developer/keys"),
   revokeApiKey: (id: string) => api(`/developer/keys/${id}`, { method: "DELETE" }),
 
+  // Portal Radar — global scan of external job portals
+  radarSources: () => api("/radar/sources"),
+  radarStats: () => api("/radar/stats"),
+  radarScan: (source = "") =>
+    api(`/radar/scan${source ? `?source=${encodeURIComponent(source)}` : ""}`, { method: "POST" }),
+  radarListings: (params = "") => api(`/radar/listings${params}`),
+  radarTalent: (params = "") => api(`/radar/talent${params}`),
+  radarImportListing: (id: string) => api(`/radar/listings/${id}/import`, { method: "POST" }),
+  radarDismissListing: (id: string) => api(`/radar/listings/${id}/dismiss`, { method: "POST" }),
+  radarSetTalentStatus: (id: string, status: string) =>
+    api(`/radar/talent/${id}/status?status=${encodeURIComponent(status)}`, { method: "POST" }),
+
   // Payments (Stripe checkout, real money movement)
   paymentsConfig: () => api("/payments/config", { auth: false }),
   checkoutMilestone: (contractId: string, milestoneId: string) =>

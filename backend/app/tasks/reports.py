@@ -1,6 +1,6 @@
 """Automation reports: daily AI summary, referral commissions, auto-completion of overdue jobs."""
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 
 from celery import shared_task
 from sqlalchemy import func
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def _compute_anomalies(metrics: dict, db) -> list[str]:
     anomalies = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     yesterday = now - timedelta(days=1)
     week_ago = now - timedelta(days=7)
 
@@ -71,7 +71,7 @@ def daily_summary():
         return {"disabled": True}
     db = SessionLocal()
     try:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         yesterday = now - timedelta(days=1)
         today = date.today()
 
@@ -166,7 +166,7 @@ def process_referral_commissions():
     """Referral 2.0 'Earn Forever': 2% L1 / 1% L2 of contract amount, 12-month window."""
     db = SessionLocal()
     try:
-        cutoff = datetime.utcnow() - timedelta(days=1)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=1)
         contracts = (
             db.query(Contract)
             .filter(Contract.status == "completed", Contract.completed_at >= cutoff)
@@ -179,7 +179,7 @@ def process_referral_commissions():
                 continue
             # 12-month earnings window since referred user registered
             if client.created_at:
-                months_active = (datetime.utcnow() - client.created_at).days / 30.0
+                months_active = (datetime.now(timezone.utc).replace(tzinfo=None) - client.created_at).days / 30.0
                 if months_active > settings.REFERRAL_MONTHS:
                     continue
 
@@ -270,7 +270,7 @@ def auto_release_milestones():
     db = SessionLocal()
     try:
         from app.routes.contracts import _release
-        cutoff = datetime.utcnow() - timedelta(hours=48)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=48)
         stuck = (
             db.query(Milestone)
             .filter(Milestone.status == "in_review", Milestone.submitted_at < cutoff)
@@ -319,7 +319,7 @@ def process_payouts():
             payment.status = "paid_out"
             payment.payout_method = method
             payment.payout_address = address
-            payment.payout_date = datetime.utcnow()
+            payment.payout_date = datetime.now(timezone.utc)
             if freelancer:
                 create_notification(
                     db,
@@ -354,7 +354,7 @@ def auto_complete_overdue():
     """Close contracts that have been 'in_progress' for more than 60 days."""
     db = SessionLocal()
     try:
-        cutoff = datetime.utcnow() - timedelta(days=60)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=60)
         overdue = (
             db.query(Contract)
             .filter(Contract.status == "in_progress", Contract.created_at < cutoff)
@@ -362,7 +362,7 @@ def auto_complete_overdue():
         )
         for contract in overdue:
             contract.status = "completed"
-            contract.completed_at = datetime.utcnow()
+            contract.completed_at = datetime.now(timezone.utc)
             job = db.get(Job, contract.job_id)
             if job:
                 job.status = "completed"

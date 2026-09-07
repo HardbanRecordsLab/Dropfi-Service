@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "DROPIFY API"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
     DATABASE_URL: str = "postgresql://dropify:dropify_pass@localhost:5432/dropify"
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -18,6 +18,18 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str | None = None
     OPENAI_API_KEY: str | None = None
 
+    # LLM via OpenRouter (OpenAI-compatible). Free models by default; swap to a
+    # cheap paid model in .env once volume justifies it. Embeddings stay on the
+    # local zero-cost fallback unless OPENAI_API_KEY is also set.
+    OPENROUTER_API_KEY: str = ""
+    LLM_BASE_URL: str = "https://openrouter.ai/api/v1"
+    LLM_MODEL: str = "deepseek/deepseek-chat-v3-0324:free"
+    LLM_MODEL_FALLBACK: str = "meta-llama/llama-3.3-70b-instruct:free"
+    LLM_MAX_TOKENS: int = 1200
+    LLM_TIMEOUT: int = 40
+    LLM_APP_URL: str = "https://dropify.hardbanrecordslab.online"
+    LLM_APP_NAME: str = "DROPIFY"
+
     STRIPE_SECRET_KEY: str | None = None
     STRIPE_WEBHOOK_SECRET: str | None = None
     STRIPE_PUBLISHABLE_KEY: str | None = None
@@ -27,7 +39,32 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None
     SMTP_PASSWORD: str | None = None
-    SENDER_EMAIL: str = "noreply@dropify.app"
+    SENDER_EMAIL: str = "dropify@hardbanrecordslab.online"
+
+    # Legal / Ownership
+    PLATFORM_OWNER: str = "HardbanRecords Lab"
+    PLATFORM_OWNER_LOCATION: str = "Wiercień, Poland"
+    SUPPORT_EMAIL: str = "dropify@hardbanrecordslab.online"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        import warnings
+        defaults = []
+        if self.SECRET_KEY == "change-me-in-production-please-32-chars-min":
+            defaults.append("SECRET_KEY")
+        if self.ADMIN_PASSWORD == "admin123":
+            defaults.append("ADMIN_PASSWORD")
+
+        if defaults and not self.DEBUG:
+            raise ValueError(
+                f"Cannot start with default values in production mode. "
+                f"Set real values in .env for: {', '.join(defaults)}"
+            )
+        elif defaults:
+            warnings.warn(
+                f"Using default values ({', '.join(defaults)}) — set real values in .env for production!",
+                stacklevel=2,
+            )
 
     # n8n automation (self-hosted workflow engine)
     N8N_WEBHOOK_URL: str = ""      # e.g. http://n8n:5678/webhook
@@ -55,6 +92,29 @@ class Settings(BaseSettings):
 
     SEED_DEMO_DATA: bool = False
     DAILY_SUMMARY_ENABLED: bool = True
+
+    # Invoicing / VAT
+    PLATFORM_NIP: str = ""              # Polish tax ID (NIP) — required for real invoices
+    PLATFORM_VAT_EU: str = ""           # VAT-UE number for cross-border EU invoices
+    PLATFORM_REGISTRATION: str = ""     # CEIDG/KRS registration number
+    PLATFORM_ADDRESS: str = "Wiercień, Poland"
+    PLATFORM_NAME: str = "HardbanRecords Lab"
+    INVOICE_PREFIX: str = "DROPIFY"
+    INVOICE_VAT_RATE: float = 0.23      # 23% VAT for PL domestic
+    INVOICE_CURRENCY: str = "PLN"
+    INVOICE_PAYMENT_DAYS: int = 14
+
+    # Portal Radar — global scan of external job portals (official APIs / RSS only)
+    RADAR_ENABLED: bool = True
+    RADAR_BOT_EMAIL: str = "radar@dropify.app"   # owns jobs imported from external leads
+    RADAR_SCAN_INTERVAL_HOURS: int = 6
+    RADAR_MAX_PER_SOURCE: int = 50
+    RADAR_HTTP_TIMEOUT: int = 15
+    ADZUNA_APP_ID: str = ""              # optional — enables the Adzuna connector
+    ADZUNA_APP_KEY: str = ""
+    USAJOBS_API_KEY: str = ""            # optional — enables the USAJOBS connector
+    USAJOBS_EMAIL: str = ""
+    GITHUB_TOKEN: str = ""               # optional — raises GitHub talent-search rate limit
 
     @property
     def cors_origins(self) -> list[str]:

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -149,7 +149,7 @@ def submit_interview(
     match.interview_answers = answers
     match.interview_score = float(result["score"])
     match.interview_feedback = result["feedback"]
-    match.interviewed_at = datetime.utcnow()
+    match.interviewed_at = datetime.now(timezone.utc)
     db.commit()
 
     create_notification(

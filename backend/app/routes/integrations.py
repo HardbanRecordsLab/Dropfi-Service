@@ -18,7 +18,7 @@ import base64
 import hashlib
 import hmac
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
@@ -118,7 +118,7 @@ async def shopify_webhook(connection_id: str, request: Request, db: Session = De
         client_id=conn.user_id,
         source="shopify-sync",
     )
-    conn.last_synced_at = datetime.utcnow()
+    conn.last_synced_at = datetime.now(timezone.utc)
     db.commit()
     return {"job_id": job.id, "status": "created"}
 
@@ -219,7 +219,7 @@ def sync_baselinker_orders(
         )
         created += 1
 
-    conn.last_synced_at = datetime.utcnow()
+    conn.last_synced_at = datetime.now(timezone.utc)
     db.commit()
     if created:
         notify_n8n("baselinker-sync", {"connection_id": conn.id, "orders_synced": created})

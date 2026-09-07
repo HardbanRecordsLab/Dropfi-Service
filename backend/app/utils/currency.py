@@ -1,9 +1,13 @@
 """#F2 Global Currency & Tax Auto-Engine.
 
-Static FX snapshot + indicative cross-border VAT/tax hints — zero external
-dependency by default (self-working, like every other AI feature's fallback),
-swappable later for a live FX provider by editing RATES_FROM_PLN.
+Self-working FX engine: tries a live provider first, and falls back to a static
+snapshot when the network is unavailable. Caches live rates for 1 hour.
 """
+
+from __future__ import annotations
+
+import time
+import httpx
 
 # Approximate PLN-based cross rates (snapshot, refresh periodically).
 RATES_FROM_PLN = {
@@ -20,6 +24,12 @@ CURRENCY_SYMBOL = {
     "PLN": "zł", "EUR": "€", "USD": "$", "GBP": "£", "UAH": "₴", "CZK": "Kč", "SEK": "kr",
 }
 
+# Cache for live rates (refreshed every 3600 seconds)
+_cached_rates: dict | None = None
+_cached_rates_source: str = "unset"
+_cached_rates_time: float = 0.0
+_CACHE_TTL = 3600  # 1 hour
+
 # Simplified, non-legal-advice notes shown to clients so cross-border pricing
 # isn't a surprise — verified case-by-case via a lawyer for real invoicing.
 TAX_NOTES = {
@@ -32,13 +42,55 @@ TAX_NOTES = {
 }
 
 
+def _normalize_live_rates(payload: dict) -> dict | None:
+    if not isinstance(payload, dict):
+        return None
+    rates = payload.get("rates")
+    if not isinstance(rates, dict):
+        return None
+
+    normalized = {"PLN": 1.0}
+    for code, value in rates.items():
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            continue
+        if numeric <= 0:
+            continue
+        normalized[str(code).upper()] = numeric
+    return normalized or None
+
+
+def _fetch_live_rates() -> tuple[dict | None, str]:
+    global _cached_rates, _cached_rates_source, _cached_rates_time
+
+    # Return cached rates if still valid
+    if _cached_rates is not None and (time.time() - _cached_rates_time) < _CACHE_TTL:
+        return _cached_rates, _cached_rates_source
+
+    try:
+        response = httpx.get("https://api.frankfurter.app/latest?from=PLN", timeout=5.0)
+        response.raise_for_status()
+        normalized = _normalize_live_rates(response.json())
+        if normalized:
+            _cached_rates = normalized
+            _cached_rates_source = "live"
+            _cached_rates_time = time.time()
+            return normalized, "live"
+    except Exception:
+        pass
+    return RATES_FROM_PLN, "fallback"
+
+
 def convert(amount_pln: float, target: str) -> float:
-    rate = RATES_FROM_PLN.get((target or "PLN").upper(), 1.0)
+    rates, _ = _fetch_live_rates()
+    rate = rates.get((target or "PLN").upper(), 1.0)
     return round(amount_pln * rate, 2)
 
 
 def rates() -> dict:
-    return {"base": "PLN", "rates": RATES_FROM_PLN, "symbols": CURRENCY_SYMBOL}
+    live_rates, source = _fetch_live_rates()
+    return {"base": "PLN", "rates": live_rates, "symbols": CURRENCY_SYMBOL, "source": source}
 
 
 def tax_hint(country_code: str) -> dict:

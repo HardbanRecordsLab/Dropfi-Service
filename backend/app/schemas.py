@@ -17,6 +17,7 @@ class UserCreate(BaseModel):
     last_name: str = ""
     company: str = ""
     referral_code: str = ""
+    rodo_consent: bool = False
 
 
 class UserLogin(BaseModel):
@@ -49,6 +50,8 @@ class UserUpdate(BaseModel):
     # Stablecoin payouts (#6)
     payout_method: Optional[str] = None
     payout_address: Optional[str] = None
+    # Tax
+    nip: Optional[str] = None
 
 
 class UserOut(ORMModel):
@@ -77,6 +80,7 @@ class UserOut(ORMModel):
     auto_accept_min_score: Optional[float] = None
     payout_method: str = "bank"
     payout_address: Optional[str] = None
+    nip: Optional[str] = None
     created_at: datetime
 
 
@@ -135,6 +139,8 @@ class JobOut(ORMModel):
     deliverables: Optional[str] = None
     deliverable_url: Optional[str] = None
     deliverable_report: Optional[dict] = None
+    external_source: Optional[str] = None
+    external_url: Optional[str] = None
     created_at: datetime
     client: Optional["UserOut"] = None
 
@@ -275,3 +281,63 @@ class AdminStats(BaseModel):
     contracts: int
     revenue: float
     recent_users: List[Any]
+
+
+# ---------- Portal Radar ----------
+class ExternalListingOut(ORMModel):
+    id: str
+    source: str
+    external_id: str
+    url: str
+    title: str
+    description: str = ""
+    company: str = ""
+    budget_min: Optional[float] = None
+    budget_max: Optional[float] = None
+    budget_text: str = ""
+    currency: str = ""
+    category: str = ""
+    tags: List[str] = []
+    location: str = ""
+    is_remote: bool = False
+    language: str = "en"
+    contact: str = ""
+    posted_at: Optional[datetime] = None
+    fetched_at: Optional[datetime] = None
+    status: str = "new"
+    imported_job_id: Optional[str] = None
+
+
+class ExternalTalentOut(ORMModel):
+    id: str
+    source: str
+    external_id: str
+    url: str
+    name: str
+    headline: str = ""
+    skills: List[str] = []
+    location: str = ""
+    country: str = ""
+    rate_text: str = ""
+    rating: Optional[float] = None
+    followers: Optional[int] = None
+    portfolio_url: str = ""
+    avatar_url: str = ""
+    fetched_at: Optional[datetime] = None
+    status: str = "new"
+
+
+class RadarSourceOut(BaseModel):
+    slug: str
+    name: str
+    kind: str
+    region: str
+    homepage: str
+    access: str
+    requires_key: bool
+    enabled: bool
+    last_scan_at: Optional[datetime] = None
+    last_scan_ok: Optional[bool] = None
+    last_scan_error: Optional[str] = None
+    listings_count: int = 0
+    talents_count: int = 0

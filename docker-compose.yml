@@ -21,10 +21,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: dropify-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-dropify_redis_pass}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-dropify_redis_pass}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,7 +37,7 @@ services:
     env_file: ./backend/.env
     environment:
       DATABASE_URL: postgresql://dropify:${POSTGRES_PASSWORD:-dropify_pass}@db:5432/dropify
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:-dropify_redis_pass}@redis:6379/0
     ports:
       - "8000:8000"
     depends_on:
@@ -57,7 +58,7 @@ services:
     env_file: ./backend/.env
     environment:
       DATABASE_URL: postgresql://dropify:${POSTGRES_PASSWORD:-dropify_pass}@db:5432/dropify
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:-dropify_redis_pass}@redis:6379/0
     command: celery -A app.tasks.celery_app.celery_app worker --loglevel=info --concurrency=2
     depends_on:
       db:
@@ -71,7 +72,7 @@ services:
     container_name: dropify-beat
     env_file: ./backend/.env
     environment:
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:-dropify_redis_pass}@redis:6379/0
     command: celery -A app.tasks.celery_app.celery_app beat --loglevel=info
     depends_on:
       redis:
@@ -82,10 +83,11 @@ services:
     image: mher/flower:2.0
     container_name: dropify-flower
     environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-dropify_redis_pass}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-dropify_redis_pass}@redis:6379/0
+      FLOWER_BASIC_AUTH: "${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-change_me_flower}"
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     depends_on:
       redis:
         condition: service_healthy
@@ -112,6 +114,7 @@ services:
       - "127.0.0.1:5678:5678"   # localhost only — expose via SSH tunnel or nginx
     volumes:
       - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/workflows:ro
     restart: unless-stopped
 
   nginx:

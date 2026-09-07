@@ -27,7 +27,10 @@ export default function Footer() {
             <span className="gold-gradient-text">DROPIFY</span>
           </div>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-            {t("brand.tagline")}. © 2026 DROPIFY. {t("footer.rights")}
+            {t("brand.tagline")}. © 2026 DROPIFY by HardbanRecords Lab. {t("footer.rights")}
+          </p>
+          <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
+            Wiercień, Polska · <a href="mailto:dropify@hardbanrecordslab.online" style={{ color: "var(--gold)" }}>dropify@hardbanrecordslab.online</a>
           </p>
         </div>
         <div>
@@ -45,8 +48,8 @@ export default function Footer() {
             {t("footer.legal")}
           </h4>
           <ul style={{ display: "flex", flexDirection: "column", gap: "0.7rem", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-            <li>{t("footer.regulamin")}</li>
-            <li>{t("footer.privacy")}</li>
+            <li><Link href="/terms">{t("footer.regulamin")}</Link></li>
+            <li><Link href="/privacy">{t("footer.privacy")}</Link></li>
           </ul>
         </div>
       </div>

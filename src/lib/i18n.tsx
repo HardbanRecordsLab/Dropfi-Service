@@ -305,6 +305,42 @@ const DICT: Record<string, { pl: string; en: string }> = {
   "int.never": { pl: "nigdy", en: "never" },
   "int.webhookUrl": { pl: "URL webhooka Shopify", en: "Shopify webhook URL" },
 
+  // Portal Radar — global scan of external job portals
+  "nav.radar": { pl: "Portal Radar", en: "Portal Radar" },
+  "radar.title": { pl: "Portal Radar", en: "Portal Radar" },
+  "radar.subtitle": {
+    pl: "Skan portali z całego świata przez oficjalne API i kanały RSS — zlecenia (zleceniodawcy) i wykonawcy (zleceniobiorcy). Importuj zlecenie jednym kliknięciem, a silnik AI dopasuje wykonawców z DROPIFY.",
+    en: "Worldwide portal scan via official APIs and RSS feeds — jobs (demand) and contractors (supply). Import a lead in one click and the AI engine matches DROPIFY freelancers.",
+  },
+  "radar.tab.listings": { pl: "Zlecenia", en: "Job leads" },
+  "radar.tab.talent": { pl: "Wykonawcy", en: "Contractors" },
+  "radar.tab.sources": { pl: "Źródła", en: "Sources" },
+  "radar.search": { pl: "Szukaj…", en: "Search…" },
+  "radar.filter.source": { pl: "Wszystkie źródła", en: "All sources" },
+  "radar.filter.remote": { pl: "Tylko zdalne", en: "Remote only" },
+  "radar.filter.status": { pl: "Wszystkie statusy", en: "All statuses" },
+  "radar.import": { pl: "Importuj jako zlecenie", en: "Import as job" },
+  "radar.dismiss": { pl: "Odrzuć", en: "Dismiss" },
+  "radar.imported": { pl: "Zaimportowano", en: "Imported" },
+  "radar.dismissed": { pl: "Odrzucone", en: "Dismissed" },
+  "radar.open": { pl: "Otwórz oryginał", en: "Open original" },
+  "radar.contact": { pl: "Kontakt", en: "Contact" },
+  "radar.none": { pl: "Brak wyników — uruchom skan w zakładce Źródła.", en: "Nothing here yet — run a scan from the Sources tab." },
+  "radar.scanNow": { pl: "Skanuj teraz", en: "Scan now" },
+  "radar.scanAll": { pl: "Skanuj wszystkie źródła", en: "Scan all sources" },
+  "radar.scanQueued": { pl: "Skan uruchomiony", en: "Scan started" },
+  "radar.lastScan": { pl: "Ostatni skan", en: "Last scan" },
+  "radar.status.ok": { pl: "OK", en: "OK" },
+  "radar.status.fail": { pl: "Błąd", en: "Failed" },
+  "radar.status.never": { pl: "nigdy", en: "never" },
+  "radar.needsKey": { pl: "wymaga klucza API", en: "needs API key" },
+  "radar.disabled": { pl: "wyłączone", en: "disabled" },
+  "radar.kind.listings": { pl: "zlecenia", en: "job leads" },
+  "radar.kind.talent": { pl: "wykonawcy", en: "contractors" },
+  "radar.talent.contacted": { pl: "Skontaktowano", en: "Contacted" },
+  "radar.talent.invited": { pl: "Zaproszono", en: "Invited" },
+  "radar.adminOnly": { pl: "Skan może uruchomić tylko administrator.", en: "Only an admin can run a scan." },
+
   // Dispute handling
   "dispute.title": { pl: "Spór", en: "Dispute" },
   "dispute.raise": { pl: "Zgłoś spór", en: "Raise a dispute" },
@@ -470,6 +506,13 @@ const DICT: Record<string, { pl: string; en: string }> = {
   "auth.verifyEmail.resend": { pl: "Wyślij ponownie link weryfikacyjny", en: "Resend verification email" },
   "auth.verifyEmail.resent": { pl: "Wysłano link weryfikacyjny — sprawdź skrzynkę.", en: "Verification email sent — check your inbox." },
 
+  // RODO consent
+  "auth.rodo.consent": { pl: "Wyrażam zgodę na przetwarzanie moich danych osobowych zgodnie z Polityką Prywatności", en: "I consent to the processing of my personal data in accordance with the Privacy Policy" },
+  "auth.rodo.privacyLink": { pl: "Polityką Prywatności", en: "Privacy Policy" },
+  "auth.rodo.and": { pl: "oraz", en: "and" },
+  "auth.rodo.termsLink": { pl: "Regulaminem", en: "Terms of Service" },
+  "auth.rodo.required": { pl: "Zgoda na RODO jest wymagana do rejestracji.", en: "GDPR consent is required to register." },
+
   // Dashboard
   "dash.title": { pl: "Panel", en: "Dashboard" },
   "dash.welcome": { pl: "Witaj", en: "Welcome" },
@@ -565,6 +608,8 @@ const DICT: Record<string, { pl: string; en: string }> = {
   "contracts.markComplete": { pl: "Oznacz jako zakończone", en: "Mark complete" },
   "contracts.status.in_progress": { pl: "W realizacji", en: "In progress" },
   "contracts.status.completed": { pl: "Zakończony", en: "Completed" },
+  "contracts.status.cancelled": { pl: "Anulowany", en: "Cancelled" },
+  "contracts.status.disputed": { pl: "W sporze", en: "Disputed" },
 
   // Profile
   "profile.title": { pl: "Mój profil", en: "My profile" },
@@ -591,6 +636,37 @@ const DICT: Record<string, { pl: string; en: string }> = {
   "admin.matches": { pl: "Matchy", en: "Matches" },
   "admin.contracts": { pl: "Kontrakty", en: "Contracts" },
   "admin.revenue": { pl: "Przychód", en: "Revenue" },
+  "admin.forbidden": { pl: "Brak dostępu.", en: "Forbidden." },
+
+  // Matches / Jobs actions
+  "matches.contractCreated": { pl: "Kontrakt utworzony!", en: "Contract created!" },
+  "matches.declined": { pl: "Match odrzucony", en: "Match declined" },
+  "matches.answerAll": { pl: "Odpowiedz na wszystkie pytania", en: "Answer all questions" },
+  "matches.interviewSubmitted": { pl: "Interview wysłane — AI oceniło Twoje odpowiedzi!", en: "Interview submitted — AI scored your answers!" },
+  "matches.enterPrice": { pl: "Podaj prawidłową cenę", en: "Enter a valid price" },
+  "matches.priceProposal": { pl: "Propozycja ceny wysłana do klienta", en: "Price proposal sent to the client" },
+
+  // Jobs detail
+  "jobs.completed": { pl: "Zlecenie zakończone", en: "Job completed" },
+  "jobs.describeWork": { pl: "Opisz wykonaną pracę", en: "Describe the delivered work" },
+  "jobs.qaReport": { pl: "Raport AI QA:", en: "AI QA report:" },
+
+  // Contracts actions
+  "contracts.milestoneSubmitted": { pl: "Milestone przesłany", en: "Milestone submitted" },
+  "contracts.paymentReleased": { pl: "Płatność zwolniona", en: "Payment released" },
+  "contracts.refundIssued": { pl: "Zwrot wystawiony", en: "Refund issued" },
+
+  // Freelancers
+  "freelancers.searchPlaceholder": { pl: "Szukaj po umiejętnościach…", en: "Search by skills…" },
+  "freelancers.none": { pl: "Nie znaleziono freelancerów.", en: "No freelancers found." },
+
+  // Profile
+  "profile.country": { pl: "Kraj", en: "Country" },
+  "profile.reviews": { pl: "opinii", en: "reviews" },
+  "profile.shareReferral": { pl: "Udostępnij ten kod — znajomi dostają darmowy PRO trial.", en: "Share this code — friends get free PRO trial." },
+
+  // Jobs new
+  "jobs.onlyClients": { pl: "Tylko klienci mogą tworzyć zlecenia.", en: "Only clients can post jobs." },
 
   // Notifications
   "notif.title": { pl: "Powiadomienia", en: "Notifications" },

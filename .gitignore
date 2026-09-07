@@ -50,3 +50,6 @@ backend/tests/test_dropify.db
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# HBRL VPS ops handbook — CONFIDENTIAL, must never enter this repo
+/HBRL-VPS/

@@ -7,7 +7,7 @@ celery_app = Celery(
     "dropify",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.tasks.matching", "app.tasks.reports"],
+    include=["app.tasks.matching", "app.tasks.reports", "app.tasks.radar"],
 )
 
 celery_app.conf.update(
@@ -41,5 +41,9 @@ celery_app.conf.beat_schedule = {
     "auto-complete-overdue": {
         "task": "app.tasks.reports.auto_complete_overdue",
         "schedule": crontab(hour=0, minute=30),
+    },
+    "portal-radar-scan": {
+        "task": "app.tasks.radar.scan_all_sources",
+        "schedule": crontab(minute=0, hour=f"*/{max(1, settings.RADAR_SCAN_INTERVAL_HOURS)}"),
     },
 }

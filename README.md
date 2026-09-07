@@ -4,6 +4,10 @@
 
 B2B marketplace connecting **e-commerce / dropshipping** clients with **freelancers & suppliers** automatically via AI. Bilingual **Polski + English**, global reach.
 
+**Wlasciciel:** HardbanRecords Lab, Wiercień, Polska
+**Email:** dropify@hardbanrecordslab.online
+**Trademark:** DROPIFY — all rights reserved, HardbanRecords Lab
+
 ```
 Client posts job ──▶ AI analyzes (Claude) ──▶ Semantic search (pgvector)
       ──▶ Top 3 matches scored ──▶ Auto-notify freelancers

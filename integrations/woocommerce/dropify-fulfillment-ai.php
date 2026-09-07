@@ -1,14 +1,14 @@
 <?php
 /**
  * Plugin Name: DROPIFY Fulfillment AI
- * Plugin URI: https://github.com/HardbanRecordsLab/Dropfi-Service
+ * Plugin URI: https://github.com/HardbanRecordsLab/Dropify-Service
  * Description: Sprint-4 integration (#9, doku/PLAN_20_FUNKCJI_PONAD_KONKURENCJA.md). One click on a WooCommerce product
  *              posts an AI-matched DROPIFY job (photography, listing copy, video, fulfillment...) via the White-Label
  *              Reseller API (see backend/app/routes/developer.py). No DROPIFY account credentials are ever stored here
  *              beyond the single partner API key you generate in your own DROPIFY dashboard (Developer / API).
  * Version: 1.0.0
  * Requires Plugins: woocommerce
- * Author: DROPIFY
+ * Author: HardbanRecords Lab (DROPIFY)
  * License: MIT
  * Text Domain: dropify-fulfillment-ai
  */

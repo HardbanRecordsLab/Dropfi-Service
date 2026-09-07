@@ -339,3 +339,71 @@ export interface StoreConnection {
   last_synced_at: string | null;
   created_at: string;
 }
+
+// Portal Radar — global scan of external job portals
+export interface ExternalListing {
+  id: string;
+  source: string;
+  external_id: string;
+  url: string;
+  title: string;
+  description: string;
+  company: string;
+  budget_min: number | null;
+  budget_max: number | null;
+  budget_text: string;
+  currency: string;
+  category: string;
+  tags: string[];
+  location: string;
+  is_remote: boolean;
+  language: string;
+  contact: string;
+  posted_at: string | null;
+  fetched_at: string | null;
+  status: "new" | "reviewed" | "imported" | "dismissed";
+  imported_job_id: string | null;
+}
+
+export interface ExternalTalent {
+  id: string;
+  source: string;
+  external_id: string;
+  url: string;
+  name: string;
+  headline: string;
+  skills: string[];
+  location: string;
+  country: string;
+  rate_text: string;
+  rating: number | null;
+  followers: number | null;
+  portfolio_url: string;
+  avatar_url: string;
+  fetched_at: string | null;
+  status: "new" | "contacted" | "invited" | "dismissed";
+}
+
+export interface RadarSource {
+  slug: string;
+  name: string;
+  kind: "listings" | "talent" | "both";
+  region: string;
+  homepage: string;
+  access: string;
+  requires_key: boolean;
+  enabled: boolean;
+  last_scan_at: string | null;
+  last_scan_ok: boolean | null;
+  last_scan_error: string | null;
+  listings_count: number;
+  talents_count: number;
+}
+
+export interface RadarStats {
+  listings: { total: number; by_status: Record<string, number> };
+  talent: { total: number; by_status: Record<string, number> };
+  sources_enabled: number;
+  sources_total: number;
+  last_scan_at: string | null;
+}
