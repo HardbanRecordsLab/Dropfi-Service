@@ -2,7 +2,7 @@
 
 **Platforma AI do automatycznego doboru zleceń | AI-powered job matching platform**
 
-B2B marketplace connecting **e-commerce / dropshipping** clients with **freelancers & suppliers** automatically via AI. Bilingual **Polski + English**, global reach.
+B2B marketplace connecting clients from **any industry** (e-commerce, design, coding, real estate, music production, events, and more — see [`doku/MEGA_PLATFORM_BLUEPRINT.md`](doku/MEGA_PLATFORM_BLUEPRINT.md) §11 for the full vertical list) with **freelancers & suppliers** automatically via AI. Bilingual **Polski + English**, global reach.
 
 **Wlasciciel:** HardbanRecords Lab, Wiercień, Polska
 **Email:** dropify@hardbanrecordslab.online

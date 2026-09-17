@@ -366,8 +366,8 @@ const DICT: Record<string, { pl: string; en: string }> = {
     en: "of jobs to the best specialists",
   },
   "hero.subtitle": {
-    pl: "DROPIFY to globalny rynek, w którym sztuczna inteligencja łączy e-commerce i dropshipping z wykwalifikowanymi freelancerami w 30 sekund. Po polsku i po angielsku.",
-    en: "DROPIFY is a global marketplace where AI connects e-commerce and dropshipping with skilled freelancers in 30 seconds. In Polish and English.",
+    pl: "DROPIFY to globalny rynek, w którym sztuczna inteligencja łączy zleceniodawców z każdej branży — od e-commerce po produkcję muzyczną, nieruchomości czy eventy — z wykwalifikowanymi freelancerami w 30 sekund. Po polsku i po angielsku.",
+    en: "DROPIFY is a global marketplace where AI connects clients from any industry — from e-commerce to music production, real estate or events — with skilled freelancers in 30 seconds. In Polish and English.",
   },
   "hero.cta.start": { pl: "Zacznij za darmo", en: "Start for free" },
   "hero.cta.learn": { pl: "Zobacz jak działa", en: "See how it works" },
@@ -455,8 +455,8 @@ const DICT: Record<string, { pl: string; en: string }> = {
   // CTA
   "cta.title": { pl: "Gotowy do startu?", en: "Ready to get started?" },
   "cta.desc": {
-    pl: "Dołącz do globalnej społeczności freelancerów i e-commerce.",
-    en: "Join the global community of freelancers and e-commerce.",
+    pl: "Dołącz do globalnej społeczności freelancerów i zleceniodawców z każdej branży.",
+    en: "Join the global community of freelancers and clients from every industry.",
   },
   "cta.button": { pl: "Załóż darmowe konto", en: "Create a free account" },
 
@@ -469,7 +469,7 @@ const DICT: Record<string, { pl: string; en: string }> = {
   "auth.lastName": { pl: "Nazwisko", en: "Last name" },
   "auth.company": { pl: "Firma", en: "Company" },
   "auth.role": { pl: "Jestem…", en: "I am…" },
-  "auth.role.client": { pl: "Zleceniodawcą (e-commerce / dropshipping)", en: "A client (e-commerce / dropshipping)" },
+  "auth.role.client": { pl: "Zleceniodawcą (dowolna branża)", en: "A client (any industry)" },
   "auth.role.freelancer": { pl: "Freelancerem / dostawcą usług", en: "A freelancer / service provider" },
   "auth.referral": { pl: "Kod polecający (opcjonalnie)", en: "Referral code (optional)" },
   "auth.login.btn": { pl: "Zaloguj", en: "Sign in" },
