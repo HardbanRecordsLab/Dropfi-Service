@@ -22,7 +22,7 @@ export default function PrivacyPage() {
             Polityka Prywatnosci / Privacy Policy
           </h1>
           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-            Ostatnia aktualizacja: 23 sierpień 2026 · Wersja 1.0
+            Ostatnia aktualizacja: 23 wrzesień 2026 · Wersja 1.1
           </p>
         </div>
       </section>
@@ -45,7 +45,7 @@ export default function PrivacyPage() {
             <p>Zbieramy nastepujace kategorie danych osobowych:</p>
             <ul style={{ paddingLeft: "1.5rem" }}>
               <li><strong>Dane konta:</strong> imie, nazwisko, adres email, haslo (szyfrowane bcrypt), rola (klient/freelancer/admin)</li>
-              <li><strong>Dane profilu:</strong> opis, umiejetnosci, stawki, portfolio, zdjecie profilowe</li>
+              <li><strong>Dane profilu:</strong> opis, umiejetnosci, stawki, portfolio, zdjecie profilowe, a dla Freelancerow dodatkowo: linki do portfolio, certyfikaty, historia zatrudnienia, profil LinkedIn — dobrowolnie podawane w celu weryfikacji kwalifikacji</li>
               <li><strong>Dane transakcji:</strong> historia zlecen, kontraktow, platnosci, ocen</li>
               <li><strong>Dane techniczne:</strong> adres IP, przegladarka, device ID, logi dostepu</li>
               <li><strong>Dane platnosci:</strong> przetwarzane przez Stripe — nie przechowujemy numerow kart platniczych</li>
@@ -57,6 +57,7 @@ export default function PrivacyPage() {
               <li>Zarzadzanie kontem uzytkownika i uwierzytelnianie</li>
               <li>Komunikacja dotyczaca zlecen, matchy i transakcji</li>
               <li>Analiza i ulepszanie dzialania Platformy (AI matching, raporty)</li>
+              <li>Automatyczna ocena wiarygodnosci profilu Freelancera i zlecenia (wynik liczbowy i uwagi, widoczne dla administratora; nie skutkuje automatycznym zablokowaniem konta ani zlecenia)</li>
               <li>Wysylanie powiadomien email (transakcyjne i marketingowe — za zgoda)</li>
               <li>Wypelnianie obowiazkow prawnych (faktury, podatki)</li>
             </ul>

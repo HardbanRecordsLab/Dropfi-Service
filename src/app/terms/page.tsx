@@ -22,7 +22,7 @@ export default function TermsPage() {
             Regulamin / Terms of Service
           </h1>
           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-            Ostatnia aktualizacja: 23 sierpień 2026 · Wersja 1.0
+            Ostatnia aktualizacja: 23 wrzesień 2026 · Wersja 1.1
           </p>
         </div>
       </section>
@@ -85,6 +85,14 @@ export default function TermsPage() {
             </p>
             <p>
               4.4. Match AI nie stanowi gwarancji jakosci uslug — ostateczna decyzje podejmuje klient.
+            </p>
+            <p>
+              4.5. Profile Freelancerow oraz nowo utworzone zlecenia podlegaja automatycznej ocenie AI
+              pod katem wiarygodnosci (np. spojnosc profilu z deklarowanymi umiejetnosciami, precyzja
+              opisu zlecenia wobec szacowanej wyceny). Ocena ta niczego automatycznie nie blokuje —
+              profile lub zlecenia oznaczone jako wymagajace uwagi trafiaja do recznego przegladu przez
+              administratora, a Uzytkownik moze w kazdej chwili normalnie korzystac z Platformy w
+              trakcie tego przegladu.
             </p>
 
             <h2 style={{ color: "var(--text-primary)", fontSize: "1.3rem", marginTop: "2rem", marginBottom: "1rem" }}>§5 Kontrakt i escrow</h2>
