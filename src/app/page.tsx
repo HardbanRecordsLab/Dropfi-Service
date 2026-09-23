@@ -26,12 +26,6 @@ export default function Home() {
     { n: "04", title: t("how.s4.title"), desc: t("how.s4.desc") },
   ];
 
-  const plans = [
-    { name: "FREE", price: "0", jobs: t("pricing.free.jobs"), features: [t("pricing.feature.matching")], cta: t("pricing.cta.free") },
-    { name: "STARTER", price: "49", jobs: t("pricing.starter.jobs"), features: [t("pricing.feature.matching"), t("pricing.feature.analytics"), t("pricing.feature.support")], cta: t("pricing.cta.starter"), popular: false },
-    { name: "PRO", price: "149", jobs: t("pricing.pro.jobs"), features: [t("pricing.feature.matching"), t("pricing.feature.priority"), t("pricing.feature.analytics"), t("pricing.feature.slack")], cta: t("pricing.cta.pro"), popular: true },
-  ];
-
   return (
     <main>
       <PortalNav />
@@ -155,73 +149,27 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* Pricing — commission only. A tiered subscription (Free/Starter/Pro)
+          used to live here alongside it; removed 2026-09-23 so the platform
+          has exactly one, unambiguous monetization story: a flat commission
+          on completed jobs, nothing charged up front. */}
       <section id="pricing" style={{ padding: "7rem 2rem" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "4rem" }}>
-            <div style={{ color: "var(--accent-gold)", fontSize: "0.8rem", fontWeight: "700", letterSpacing: "3px", marginBottom: "1rem" }}>
-              PRICING
-            </div>
-            <h2 style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}>{t("pricing.title")}</h2>
-            <p style={{ color: "var(--text-secondary)", marginTop: "0.8rem" }}>{t("pricing.subtitle")}</p>
+        <div style={{ maxWidth: "760px", margin: "0 auto", textAlign: "center" }}>
+          <div style={{ color: "var(--accent-gold)", fontSize: "0.8rem", fontWeight: "700", letterSpacing: "3px", marginBottom: "1rem" }}>
+            PRICING
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "2rem" }}>
-            {plans.map((p) => (
-              <div
-                key={p.name}
-                className="premium-card"
-                style={{
-                  ...(p.popular
-                    ? { border: "1px solid var(--border-gold)", boxShadow: "0 0 40px rgba(197,160,89,0.1)" }
-                    : {}),
-                  position: "relative",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {p.popular && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "-0.8rem",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      background: "var(--accent-gold)",
-                      color: "#000",
-                      fontSize: "0.65rem",
-                      fontWeight: "800",
-                      padding: "0.3rem 1rem",
-                      borderRadius: "20px",
-                      letterSpacing: "1px",
-                    }}
-                  >
-                    {t("pricing.popular")}
-                  </div>
-                )}
-                <div style={{ fontSize: "0.85rem", fontWeight: "800", letterSpacing: "2px", marginBottom: "1rem" }}>
-                  {p.name}
-                </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "0.3rem", marginBottom: "1rem" }}>
-                  <span style={{ fontSize: "2.8rem", fontWeight: "800" }} className="gold-gradient-text">
-                    {p.price}
-                  </span>
-                  <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>{t("pricing.month")}</span>
-                </div>
-                <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.5rem" }}>{p.jobs}</div>
-                <ul style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginBottom: "2rem", flex: 1 }}>
-                  {p.features.map((f) => (
-                    <li key={f} style={{ fontSize: "0.85rem", color: "var(--text-secondary)", display: "flex", gap: "0.6rem", alignItems: "center" }}>
-                      <span style={{ color: "var(--accent-gold)" }}>✓</span> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register">
-                  <Btn variant={p.popular ? "primary" : "outline"} style={{ width: "100%" }}>
-                    {p.cta}
-                  </Btn>
-                </Link>
-              </div>
-            ))}
+          <h2 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", marginBottom: "1rem" }}>{t("fees.dropify")}</h2>
+          <p style={{ color: "var(--text-secondary)", marginBottom: "2.5rem" }}>{t("pricing.subtitle")}</p>
+          <div className="premium-card" style={{ padding: "3rem 2rem", display: "inline-block" }}>
+            <div style={{ fontSize: "3.5rem", fontWeight: "800" }} className="gold-gradient-text">
+              8%
+            </div>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "0.6rem", marginBottom: "2rem" }}>
+              {t("pricing.subtitle")}
+            </p>
+            <Link href="/fees">
+              <Btn variant="outline">{t("fees.title")}</Btn>
+            </Link>
           </div>
         </div>
       </section>

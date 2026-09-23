@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import DashShell from "@/components/DashShell";
-import { Btn, Loading, inputStyle, labelStyle, Badge } from "@/components/ui";
+import { Btn, Loading, inputStyle, labelStyle } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API } from "@/lib/api";
@@ -372,38 +372,6 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="premium-card">
-            <h3 style={{ fontSize: "1.1rem", marginBottom: "0.8rem" }}>{t("profile.plan")}</h3>
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
-              <Badge color="var(--accent-gold)">{user.plan?.toUpperCase()}</Badge>
-              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{user.email}</span>
-            </div>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              {["free", "starter", "pro"].map((p) => (
-                <button
-                  key={p}
-                  onClick={async () => {
-                    try {
-                      await API.subscribe(p);
-                      refresh();
-                    } catch {}
-                  }}
-                  style={{
-                    padding: "0.5rem 1rem",
-                    borderRadius: "4px",
-                    fontSize: "0.7rem",
-                    fontWeight: "700",
-                    textTransform: "uppercase",
-                    background: user.plan === p ? "var(--accent-gold)" : "transparent",
-                    color: user.plan === p ? "#000" : "var(--text-secondary)",
-                    border: "1px solid var(--border-subtle)",
-                  }}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </DashShell>
