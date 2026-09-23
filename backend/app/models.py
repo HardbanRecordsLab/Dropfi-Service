@@ -58,6 +58,23 @@ class User(TimestampMixin, Base):
     payout_address = Column(String(255), nullable=True)
     # Tax identification
     nip = Column(String(20), nullable=True)  # Polish NIP (tax ID)
+    company_website = Column(String(500), default="")
+
+    # AI profile verification — freelancer qualifications (submitted at signup /
+    # profile completion, checked by AI for internal consistency) and client
+    # legitimacy signals. Separate from utils/risk.py's Smart Supplier Risk
+    # Score, which is a behavioral/track-record score computed only after a
+    # user has platform history; this one is meant to catch a fake profile or
+    # an unqualified freelancer BEFORE they have any jobs completed at all.
+    portfolio_links = Column(JSON, default=list)  # list[str] URLs
+    certifications = Column(JSON, default=list)  # list[{name, issuer, year}]
+    work_history = Column(JSON, default=list)  # list[{company, role, period, description}]
+    linkedin_url = Column(String(500), default="")
+    verification_score = Column(Float, nullable=True)  # 0-100, higher = more credible
+    verification_flags = Column(JSON, default=list)  # list[str] — concerns raised by the AI check
+    verification_summary = Column(Text, default="")
+    verification_status = Column(String(20), default="pending", index=True)  # pending | verified | review | flagged
+    verified_at = Column(DateTime(timezone=True), nullable=True)
 
     jobs_created = relationship("Job", back_populates="client", foreign_keys="Job.client_id")
     matches = relationship("Match", back_populates="freelancer", foreign_keys="Match.freelancer_id")
@@ -95,6 +112,14 @@ class Job(TimestampMixin, Base):
     # Portal Radar: set when this job was imported from an external portal lead
     external_source = Column(String(50), nullable=True)
     external_url = Column(Text, nullable=True)
+    # AI job-posting verification — catches vague/fake postings, budgets far off
+    # the fair-price estimate, and other legitimacy red flags. See User's
+    # verification_* fields for the freelancer-side counterpart.
+    verification_score = Column(Float, nullable=True)  # 0-100, higher = more credible
+    verification_flags = Column(JSON, default=list)  # list[str]
+    verification_summary = Column(Text, default="")
+    verification_status = Column(String(20), default="pending", index=True)  # pending | verified | review | flagged
+    verified_at = Column(DateTime(timezone=True), nullable=True)
 
     client = relationship("User", back_populates="jobs_created", foreign_keys=[client_id])
     matches = relationship("Match", back_populates="job", cascade="all, delete-orphan", foreign_keys="Match.job_id")

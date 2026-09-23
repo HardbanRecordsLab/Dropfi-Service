@@ -127,6 +127,7 @@ export const API = {
   analytics: () => api("/analytics/dashboard"),
   adminStats: () => api("/admin/stats"),
   adminUsers: () => api("/admin/users"),
+  adminVerificationQueue: () => api("/admin/verification-queue"),
 
   // Plans / Notifications
   subscribe: (plan: string) => api(`/plans/subscribe?plan=${plan}`, { method: "POST" }),

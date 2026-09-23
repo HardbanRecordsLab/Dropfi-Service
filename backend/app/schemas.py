@@ -18,6 +18,18 @@ class UserCreate(BaseModel):
     company: str = ""
     referral_code: str = ""
     rodo_consent: bool = False
+    # Verification-relevant fields — optional at registration (a profile can be
+    # completed later via PUT /me, which is when verification actually runs
+    # meaningfully), accepted here too so a thorough signup form can send them
+    # in one step instead of two.
+    bio: str = ""
+    skills: List[str] = []
+    portfolio_links: List[str] = []
+    certifications: List[dict] = []  # [{name, issuer, year}]
+    work_history: List[dict] = []  # [{company, role, period, description}]
+    linkedin_url: str = ""
+    company_website: str = ""
+    nip: str = ""
 
 
 class UserLogin(BaseModel):
@@ -52,6 +64,12 @@ class UserUpdate(BaseModel):
     payout_address: Optional[str] = None
     # Tax
     nip: Optional[str] = None
+    # Verification-relevant fields
+    portfolio_links: Optional[List[str]] = None
+    certifications: Optional[List[dict]] = None
+    work_history: Optional[List[dict]] = None
+    linkedin_url: Optional[str] = None
+    company_website: Optional[str] = None
 
 
 class UserOut(ORMModel):
@@ -75,6 +93,16 @@ class UserOut(ORMModel):
     plan: str
     referral_code: Optional[str] = None
     email_verified: bool = False
+    portfolio_links: List[str] = []
+    certifications: List[dict] = []
+    work_history: List[dict] = []
+    linkedin_url: str = ""
+    company_website: str = ""
+    nip: Optional[str] = None
+    verification_score: Optional[float] = None
+    verification_flags: List[str] = []
+    verification_summary: str = ""
+    verification_status: str = "pending"
     auto_accept_enabled: bool = False
     auto_accept_min_budget: Optional[float] = None
     auto_accept_min_score: Optional[float] = None
@@ -99,6 +127,15 @@ class FreelancerOut(ORMModel):
     rating: float
     rating_count: int
     completed_jobs: int
+    # Public-facing credibility signals — score/status only; the AI's internal
+    # flags/summary (e.g. "Bio is missing") stay on UserOut for the account
+    # owner and admins, not shown on someone else's public profile.
+    portfolio_links: List[str] = []
+    certifications: List[dict] = []
+    work_history: List[dict] = []
+    linkedin_url: str = ""
+    verification_score: Optional[float] = None
+    verification_status: str = "pending"
 
 
 # ---------- Job ----------
@@ -141,6 +178,10 @@ class JobOut(ORMModel):
     deliverable_report: Optional[dict] = None
     external_source: Optional[str] = None
     external_url: Optional[str] = None
+    verification_score: Optional[float] = None
+    verification_flags: List[str] = []
+    verification_summary: str = ""
+    verification_status: str = "pending"
     created_at: datetime
     client: Optional["UserOut"] = None
 

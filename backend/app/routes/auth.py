@@ -7,6 +7,7 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models import User, Referral
 from app.schemas import UserCreate, UserLogin, UserOut, Token
+from app.utils.ai import verify_freelancer_profile
 from app.utils.emailer import notify_email
 from app.utils.security import (
     hash_password, verify_password, create_access_token, make_referral_code,
@@ -41,6 +42,14 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
         first_name=data.first_name,
         last_name=data.last_name,
         company=data.company,
+        bio=data.bio,
+        skills=data.skills,
+        portfolio_links=data.portfolio_links,
+        certifications=data.certifications,
+        work_history=data.work_history,
+        linkedin_url=data.linkedin_url,
+        company_website=data.company_website,
+        nip=data.nip or None,
         referral_code=make_referral_code(data.email),
         referred_by=referred_by,
         rodo_consent=True,
@@ -53,6 +62,19 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
     if referred_by:
         db.add(Referral(referrer_id=referred_by, referred_id=user.id))
         db.commit()
+
+    # Run profile verification only when signup already carried enough to say
+    # anything useful — an empty-profile freelancer just stays "pending" until
+    # they complete it via PUT /me, rather than getting flagged for being new.
+    if user.role == "freelancer" and (user.bio or user.skills or user.portfolio_links):
+        result = verify_freelancer_profile(user)
+        user.verification_score = result.get("score")
+        user.verification_flags = result.get("flags", [])
+        user.verification_summary = result.get("summary", "")
+        user.verification_status = result.get("recommendation") or "pending"
+        user.verified_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(user)
 
     verify_token = create_purpose_token(user.id, "email_verify", EMAIL_VERIFY_MINUTES)
     notify_email(

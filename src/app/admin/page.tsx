@@ -6,7 +6,7 @@ import { Badge, Btn, Loading, StatCard } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
-import type { AdminDispute, AdminStats } from "@/lib/types";
+import type { AdminDispute, AdminStats, VerificationQueue } from "@/lib/types";
 
 interface AdminUserRow {
   id: string;
@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [disputes, setDisputes] = useState<AdminDispute[]>([]);
+  const [verificationQueue, setVerificationQueue] = useState<VerificationQueue | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -38,10 +39,12 @@ export default function AdminPage() {
         const s = await API.adminStats();
         const u = await API.adminUsers();
         const d = await API.adminDisputes();
+        const v = await API.adminVerificationQueue();
         if (active) {
           setStats(s as AdminStats);
           setUsers(u as AdminUserRow[]);
           setDisputes(d as AdminDispute[]);
+          setVerificationQueue(v as VerificationQueue);
         }
       } catch (err) {
         if (active) setError(getErrorMessage(err));
@@ -130,6 +133,59 @@ export default function AdminPage() {
                     {t("admin.disputes.resolveRefund")}
                   </Btn>
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="premium-card" style={{ padding: 0, overflow: "hidden", marginBottom: "3rem" }}>
+        <div style={{ padding: "1.5rem 2rem", borderBottom: "1px solid var(--border-subtle)" }}>
+          <h2 style={{ fontSize: "1.2rem", fontFamily: "var(--font-playfair)" }}>
+            🔎 AI Verification Queue
+          </h2>
+          <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
+            Freelancer profiles and job postings the AI check flagged or wants reviewed — doesn&apos;t block anything, just surfaces it.
+          </p>
+        </div>
+        {!verificationQueue || (verificationQueue.freelancers.length === 0 && verificationQueue.jobs.length === 0) ? (
+          <p style={{ padding: "2rem", color: "var(--text-secondary)", fontSize: "0.85rem" }}>Nothing flagged right now.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {verificationQueue.freelancers.map((f) => (
+              <div key={f.id} style={{ padding: "1.5rem 2rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
+                  <div>
+                    <Badge color="#60a5fa">FREELANCER</Badge> <b style={{ marginLeft: "0.5rem" }}>{f.name}</b> — {f.email}
+                  </div>
+                  <Badge color={f.status === "flagged" ? "#f87171" : "#fbbf24"}>
+                    {f.status} · {f.score ?? "—"}/100
+                  </Badge>
+                </div>
+                <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>{f.summary}</p>
+                {f.flags.length > 0 && (
+                  <ul style={{ fontSize: "0.8rem", color: "var(--text-muted)", paddingLeft: "1.2rem" }}>
+                    {f.flags.map((flag, i) => <li key={i}>{flag}</li>)}
+                  </ul>
+                )}
+              </div>
+            ))}
+            {verificationQueue.jobs.map((j) => (
+              <div key={j.id} style={{ padding: "1.5rem 2rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
+                  <div>
+                    <Badge color="#a78bfa">JOB</Badge> <b style={{ marginLeft: "0.5rem" }}>{j.title}</b> — {j.budget.toLocaleString()} {t("common.currency")}
+                  </div>
+                  <Badge color={j.status === "flagged" ? "#f87171" : "#fbbf24"}>
+                    {j.status} · {j.score ?? "—"}/100
+                  </Badge>
+                </div>
+                <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>{j.summary}</p>
+                {j.flags.length > 0 && (
+                  <ul style={{ fontSize: "0.8rem", color: "var(--text-muted)", paddingLeft: "1.2rem" }}>
+                    {j.flags.map((flag, i) => <li key={i}>{flag}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
           </div>

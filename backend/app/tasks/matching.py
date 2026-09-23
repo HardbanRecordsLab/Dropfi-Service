@@ -2,6 +2,7 @@
 
 Flow:
 1. Analyze job with Claude (fallback: rules) → category, skills, fair price
+1b. Verify job posting legitimacy (uses the fair-price estimate from step 1)
 2. Generate job embedding
 3. Semantic search (pgvector / Python) for candidate freelancers
 4. Score each candidate (semantic, rating, price fit, availability)
@@ -9,13 +10,16 @@ Flow:
 """
 import json
 import logging
+from datetime import datetime, timezone
 
 from celery import shared_task
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models import User, Job, Match
-from app.utils.ai import analyze_job, embed_text, job_search_text, semantic_search_freelancers
+from app.utils.ai import (
+    analyze_job, embed_text, job_search_text, semantic_search_freelancers, verify_job_posting,
+)
 from app.utils.scoring import calculate_match_score
 from app.utils.notifications import create_notification
 from app.utils.n8n import notify_n8n
@@ -40,6 +44,19 @@ def run_matching(db: Session, job_id: str) -> int:
     job.subcategory = analysis.get("subcategory") or ""
     job.required_skills = analysis.get("skills") or job.required_skills
     job.ai_analysis = analysis
+    db.commit()
+
+    # 1b. Verify posting legitimacy (vague scope, budget far off the fair-price
+    # estimate just computed above, missing client info) — a flagged/review
+    # posting still gets matched normally below; this only records a signal
+    # for admin review, it doesn't block the job.
+    client = db.get(User, job.client_id)
+    verification = verify_job_posting(job, client)
+    job.verification_score = verification.get("score")
+    job.verification_flags = verification.get("flags", [])
+    job.verification_summary = verification.get("summary", "")
+    job.verification_status = verification.get("recommendation") or "pending"
+    job.verified_at = datetime.now(timezone.utc)
     db.commit()
 
     # 2. Embedding

@@ -83,3 +83,54 @@ def admin_users(db: Session = Depends(get_db)):
         }
         for u in users
     ]
+
+
+@router.get("/verification-queue", response_model=dict)
+def admin_verification_queue(db: Session = Depends(get_db)):
+    """Freelancer profiles and job postings the AI check flagged or wants a
+    human to look at (verification_status in review|flagged) — the actual,
+    reviewable output of verify_freelancer_profile / verify_job_posting, not
+    just a score sitting unused in the database."""
+    users = (
+        db.query(User)
+        .filter(User.verification_status.in_(["review", "flagged"]))
+        .order_by(User.verification_score.asc().nullslast())
+        .limit(100)
+        .all()
+    )
+    jobs = (
+        db.query(Job)
+        .filter(Job.verification_status.in_(["review", "flagged"]))
+        .order_by(Job.verification_score.asc().nullslast())
+        .limit(100)
+        .all()
+    )
+    return {
+        "freelancers": [
+            {
+                "id": u.id,
+                "email": u.email,
+                "name": u.display_name,
+                "score": u.verification_score,
+                "status": u.verification_status,
+                "flags": u.verification_flags,
+                "summary": u.verification_summary,
+                "verified_at": str(u.verified_at) if u.verified_at else None,
+            }
+            for u in users
+        ],
+        "jobs": [
+            {
+                "id": j.id,
+                "title": j.title,
+                "client_id": j.client_id,
+                "budget": j.budget,
+                "score": j.verification_score,
+                "status": j.verification_status,
+                "flags": j.verification_flags,
+                "summary": j.verification_summary,
+                "verified_at": str(j.verified_at) if j.verified_at else None,
+            }
+            for j in jobs
+        ],
+    }

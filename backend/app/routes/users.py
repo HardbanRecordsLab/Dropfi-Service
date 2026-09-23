@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -5,10 +7,18 @@ from app.database import get_db
 from app.deps import get_current_user, require_role
 from app.models import User, Rating, Contract
 from app.schemas import UserUpdate, UserOut, FreelancerOut
-from app.utils.ai import embed_text, freelancer_search_text
+from app.utils.ai import embed_text, freelancer_search_text, verify_freelancer_profile
 from app.utils.security import make_referral_code
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+# Fields that actually change what the AI verification check would say —
+# re-running it on every unrelated PUT /me (e.g. just flipping availability)
+# would waste an LLM call for nothing.
+_VERIFICATION_RELEVANT_FIELDS = {
+    "bio", "skills", "hourly_rate", "portfolio_links", "certifications",
+    "work_history", "linkedin_url",
+}
 
 
 @router.get("/me/profile", response_model=UserOut)
@@ -22,12 +32,20 @@ def update_profile(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    for field, value in data.model_dump(exclude_none=True).items():
+    changed = data.model_dump(exclude_none=True)
+    for field, value in changed.items():
         setattr(user, field, value)
     if user.role == "freelancer":
         search_text = freelancer_search_text(user)
         embedding = embed_text(search_text)
         user.embedding_json = str(embedding)
+        if _VERIFICATION_RELEVANT_FIELDS & changed.keys():
+            result = verify_freelancer_profile(user)
+            user.verification_score = result.get("score")
+            user.verification_flags = result.get("flags", [])
+            user.verification_summary = result.get("summary", "")
+            user.verification_status = result.get("recommendation") or "pending"
+            user.verified_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(user)
     return user

@@ -159,6 +159,31 @@ export interface AdminDispute {
   disputed_at: string | null;
 }
 
+export interface VerificationQueueEntry {
+  id: string;
+  score: number | null;
+  status: string;
+  flags: string[];
+  summary: string;
+  verified_at: string | null;
+}
+
+export interface VerificationFreelancer extends VerificationQueueEntry {
+  email: string;
+  name: string;
+}
+
+export interface VerificationJob extends VerificationQueueEntry {
+  title: string;
+  client_id: string;
+  budget: number;
+}
+
+export interface VerificationQueue {
+  freelancers: VerificationFreelancer[];
+  jobs: VerificationJob[];
+}
+
 export interface Rating {
   id: string;
   from_user_id: string;

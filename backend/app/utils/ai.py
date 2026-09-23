@@ -438,6 +438,139 @@ def check_deliverables(title: str, description: str, analysis: dict | None, deli
     }
 
 
+def verify_freelancer_profile(user) -> dict:
+    """AI profile-credibility check: does this freelancer profile hold together
+    internally — claimed skills vs. bio vs. portfolio/work history — or does it
+    read like a thin/fake account? Runs at profile completion, independent of
+    any track record (see utils/risk.py for the behavioral score, which needs
+    completed jobs to say anything at all)."""
+    portfolio = user.portfolio_links or []
+    certifications = user.certifications or []
+    work_history = user.work_history or []
+    skills = user.skills or []
+
+    if llm_enabled():
+        prompt = (
+            "You are a fraud/quality reviewer for a freelance marketplace, checking a freelancer profile "
+            "for internal consistency BEFORE they have any completed jobs on the platform — not judging "
+            "talent, only whether the profile looks like a real, coherent professional or a thin/fake one.\n\n"
+            f"Name: {user.display_name}\n"
+            f"Claimed skills: {', '.join(skills) or 'none listed'}\n"
+            f"Hourly rate: {user.hourly_rate if user.hourly_rate else 'not set'}\n"
+            f"Bio: {(user.bio or 'none')[:800]}\n"
+            f"Portfolio links ({len(portfolio)}): {', '.join(portfolio[:10]) or 'none'}\n"
+            f"Certifications ({len(certifications)}): {json.dumps(certifications[:10])}\n"
+            f"Work history ({len(work_history)}): {json.dumps(work_history[:10])}\n"
+            f"LinkedIn: {user.linkedin_url or 'none'}\n\n"
+            "Check specifically: does the bio match the claimed skills; are there any portfolio links or "
+            "verifiable credentials at all; is the work history plausible (no impossible overlaps/durations); "
+            "does the hourly rate roughly fit the claimed experience level; any generic/copy-pasted-sounding text.\n\n"
+            "Return JSON only: {\"score\": 0-100, \"summary\": \"1-2 sentences\", "
+            "\"flags\": [\"specific concern\", ...], \"recommendation\": \"verified|review|flagged\"}"
+        )
+        data = _llm_json(prompt, max_tokens=500)
+        if data:
+            data.setdefault("model", "llm")
+            return data
+
+    flags = []
+    score = 40  # thin-by-default baseline; each real signal adds credibility
+    if not skills:
+        flags.append("No skills listed")
+    else:
+        score += 10
+    if len(user.bio or "") < 40:
+        flags.append("Bio is missing or very short")
+    else:
+        score += 10
+    if not portfolio:
+        flags.append("No portfolio links")
+    else:
+        score += min(len(portfolio), 3) * 8
+    if not certifications and not work_history:
+        flags.append("No certifications or work history provided")
+    else:
+        score += 10
+    if not user.linkedin_url:
+        flags.append("No LinkedIn or external profile link")
+    else:
+        score += 5
+    score = max(0, min(100, score))
+    return {
+        "score": score,
+        "summary": f"Rule-based check: {len(flags)} concern(s) found." if flags else "Rule-based check: profile looks complete.",
+        "flags": flags,
+        "recommendation": "verified" if score >= 70 else ("review" if score >= 40 else "flagged"),
+        "model": "rules",
+    }
+
+
+def verify_job_posting(job, client=None) -> dict:
+    """AI job-posting-legitimacy check: vague scope, a budget wildly off the
+    fair-price estimate, or other signals that this posting may be fake or a
+    scam, rather than a genuine job. Runs alongside job analysis/matching."""
+    analysis = job.ai_analysis or {}
+    fair_price = analysis.get("fair_price")
+
+    if llm_enabled():
+        prompt = (
+            "You are a fraud reviewer for a freelance marketplace, checking a NEW job posting for signs it "
+            "might be fake, a scam, or too vague to be a real, fundable job — not judging whether it's a good "
+            "project, only whether it looks legitimate.\n\n"
+            f"Title: {job.title}\n"
+            f"Description: {(job.description or '')[:1200]}\n"
+            f"Category: {job.category or 'unclassified'}\n"
+            f"Budget: {job.budget}\n"
+            f"AI-estimated fair price: {fair_price if fair_price else 'not available'}\n"
+            f"Deadline: {job.deadline}\n"
+            f"Required skills: {', '.join(job.required_skills or []) or 'none listed'}\n"
+            f"Client company: {(client.company if client else '') or 'none listed'}\n"
+            f"Client website: {(client.company_website if client else '') or 'none listed'}\n"
+            f"Client NIP (tax ID): {'provided' if (client and client.nip) else 'not provided'}\n\n"
+            "Check specifically: is the description specific enough to actually start work from, or generic/"
+            "copy-pasted; is the budget wildly below the fair-price estimate (unpaid-work risk) or suspiciously "
+            "high with a vague scope (advance-fee-scam pattern); does the client have any identifying info at all.\n\n"
+            "Return JSON only: {\"score\": 0-100, \"summary\": \"1-2 sentences\", "
+            "\"flags\": [\"specific concern\", ...], \"recommendation\": \"verified|review|flagged\"}"
+        )
+        data = _llm_json(prompt, max_tokens=500)
+        if data:
+            data.setdefault("model", "llm")
+            return data
+
+    flags = []
+    score = 50
+    if len(job.description or "") < 60:
+        flags.append("Description is very short/vague")
+        score -= 20
+    else:
+        score += 10
+    if fair_price:
+        ratio = job.budget / fair_price if fair_price else 1.0
+        if ratio < 0.4:
+            flags.append("Budget is far below the AI fair-price estimate")
+            score -= 20
+        elif ratio > 3:
+            flags.append("Budget is unusually high relative to the estimated scope")
+            score -= 10
+        else:
+            score += 10
+    if not job.required_skills:
+        flags.append("No required skills listed")
+        score -= 5
+    if client is not None and not client.company and not client.nip:
+        flags.append("Client has no company name or tax ID on file")
+        score -= 10
+    score = max(0, min(100, score))
+    return {
+        "score": score,
+        "summary": f"Rule-based check: {len(flags)} concern(s) found." if flags else "Rule-based check: posting looks legitimate.",
+        "flags": flags,
+        "recommendation": "verified" if score >= 70 else ("review" if score >= 40 else "flagged"),
+        "model": "rules",
+    }
+
+
 def generate_price_proposal(title: str, description: str, budget: float, fair_price: float) -> dict:
     """#3 AI Price Negotiator: fair range + rationale."""
     low = round(fair_price * 0.85)
