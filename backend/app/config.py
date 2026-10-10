@@ -135,7 +135,11 @@ class Settings(BaseSettings):
     # HRL Digital sales agent — scores/drafts offers for Portal Radar leads
     # against the agency's own services (see app/utils/agency_profile.py).
     AGENCY_PROFILE_PATH: str = "app/data/agency_profile.json"
-    RADAR_ALERT_MIN_SCORE: int = 60          # fit_score threshold to draft an offer + alert
+    # 60 was the original default, but score_listing's zero-cost local embedding
+    # fallback (no OPENAI_API_KEY) caps even a perfect match around 35-40/100 in
+    # practice — verified live against wpzlecenia.pl, a 100%-relevant source.
+    # 30 is calibrated against that reality, not the theoretical 0-100 range.
+    RADAR_ALERT_MIN_SCORE: int = 30           # fit_score threshold to draft an offer + alert
     RADAR_AUTO_OFFER_MAX: int = 10           # cap on offers drafted per score_and_alert run
 
     @property
