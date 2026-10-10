@@ -1,0 +1,77 @@
+{
+  "name": "DROPIFY 06 — Radar lead (HRL Digital) → Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Jak to działa\n\n1. Backend co skan Portal Radar liczy fit_score każdego nowego ogłoszenia względem profilu HRL Digital (app/data/agency_profile.json) i — dla trafnych (fit_score >= RADAR_ALERT_MIN_SCORE) — generuje szkic oferty.\n2. Dla każdego trafnego ogłoszenia wysyła event `dropify-radar-lead` na ten webhook (raz na ogłoszenie, HMAC-podpisany).\n3. Węzeł Telegram wysyła powiadomienie z oceną, uzasadnieniem i szkicem oferty.\n\nAgent NIGDY nie wysyła ofert sam — to tylko powiadomienie. Ofertę kopiujesz i wysyłasz ręcznie na portalu.\n\nWymagane zmienne środowiskowe n8n:\n- `TELEGRAM_BOT_TOKEN` — token bota z BotFather\n- `TELEGRAM_CHAT_ID` — ID czatu/kanału\n\nWeryfikacja podpisu (opcjonalnie): ustaw w Webhook node → Verify Header → custom: `X-Dropify-Signature` (wartość = `N8N_WEBHOOK_SECRET` z backend/.env).",
+        "height": 460,
+        "width": 440
+      },
+      "id": "sticky-1",
+      "name": "Instrukcja",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-420, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dropify-radar-lead",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook: dropify-radar-lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "dropify-radar-lead-06"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{$env.TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{$env.TELEGRAM_CHAT_ID}}"
+            },
+            {
+              "name": "text",
+              "value": "=🎯 Nowy trafny lead (HRL Digital) — {{ $json.data.fit_score }}/100\n\n📌 {{ $json.data.title }}\n🌐 Źródło: {{ $json.data.source }}\n💰 {{ $json.data.budget_text || 'budżet nieznany' }}\n🧠 {{ $json.data.fit_reason }}\n\n✉️ Szkic oferty:\n{{ $json.data.offer_text }}\n\n🔗 Ogłoszenie: {{ $json.data.url }}\n📊 Dashboard: {{ $json.data.dashboard_url }}\n\n⚠️ Przypomnienie: skopiuj i wyślij ofertę ręcznie — agent nigdy nie wysyła jej sam."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "telegram-1",
+      "name": "Telegram: powiadomienie o leadzie",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [260, 0]
+    }
+  ],
+  "connections": {
+    "Webhook: dropify-radar-lead": {
+      "main": [
+        [
+          {
+            "node": "Telegram: powiadomienie o leadzie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
