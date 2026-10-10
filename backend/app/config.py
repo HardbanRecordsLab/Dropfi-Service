@@ -116,7 +116,15 @@ class Settings(BaseSettings):
     RADAR_SCAN_INTERVAL_HOURS: int = 6
     RADAR_MAX_PER_SOURCE: int = 50
     RADAR_HTTP_TIMEOUT: int = 15
-    # Connectors parked until their public endpoint is re-verified (comma-separated slugs)
+    # Connectors parked until their public endpoint is re-verified (comma-separated slugs).
+    # useme: re-checked 2026-10-10 — https://useme.com/pl/rss/jobs/ now returns a
+    # Cloudflare "Just a moment..." JS challenge (HTTP 403) to a plain HTTP client,
+    # not RSS XML. The parser itself (connectors/useme.py) is still correct — verified
+    # against a sample feed in tests/test_connector_useme.py — but there is currently no
+    # way to fetch the live feed without a browser-grade client solving that challenge,
+    # which would cross the "no bypassing portal security measures" rule. Stays disabled
+    # until useme's feed is reachable again via a plain HTTP request, or they document an
+    # official bot/API allowlist.
     RADAR_DISABLED_SOURCES: str = "useme,justjoinit"
     ADZUNA_APP_ID: str = ""              # optional — enables the Adzuna connector
     ADZUNA_APP_KEY: str = ""
