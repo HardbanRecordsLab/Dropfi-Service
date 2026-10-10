@@ -63,6 +63,15 @@ def _write_real_profile(monkeypatch, tmp_path, overrides=None):
     agency_profile_mod._cache = None
 
 
+def _force_template_profile(monkeypatch, tmp_path):
+    """Points AGENCY_PROFILE_PATH at a file that doesn't exist, so
+    load_agency_profile() falls back to the committed example template
+    (is_template=True) — regardless of whether a real, filled-in
+    agency_profile.json happens to sit at the default path on this machine."""
+    monkeypatch.setattr("app.config.settings.AGENCY_PROFILE_PATH", str(tmp_path / "does-not-exist.json"))
+    agency_profile_mod._cache = None
+
+
 class _FakeListing:
     """Mimics the subset of ExternalListing's attributes score_listing() /
     generate_offer() read — avoids needing a DB row for pure-function tests."""
@@ -144,7 +153,8 @@ def test_generate_offer_fallback_mode_english():
 # Offer endpoint — 409 on template profile, 403 for non-admin (step 4)
 # ---------------------------------------------------------------------------
 
-def test_offer_endpoint_409_on_template_profile(client, monkeypatch):
+def test_offer_endpoint_409_on_template_profile(client, monkeypatch, tmp_path):
+    _force_template_profile(monkeypatch, tmp_path)
     conn = registry.get("remotive")
     monkeypatch.setattr(conn, "fetch_listings", lambda limit: [NormalizedListing(
         external_id="agent-offer-409", url="https://example.com/agent-offer-409",
@@ -259,7 +269,8 @@ def test_pipeline_forbidden_for_non_admin(client, monkeypatch):
 # Auto score-and-alert after scan, with dedupe (step 6)
 # ---------------------------------------------------------------------------
 
-def test_scan_scores_but_does_not_alert_on_template_profile(client, monkeypatch):
+def test_scan_scores_but_does_not_alert_on_template_profile(client, monkeypatch, tmp_path):
+    _force_template_profile(monkeypatch, tmp_path)
     calls = []
     monkeypatch.setattr("app.utils.n8n.notify_n8n", lambda event, payload: calls.append((event, payload)))
 

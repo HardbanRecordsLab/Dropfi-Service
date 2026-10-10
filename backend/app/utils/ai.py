@@ -583,6 +583,25 @@ _RADAR_QUESTIONS_EN = [
 ]
 
 
+def _pick_relevant_service(text: str, services: list[dict]) -> dict:
+    """Best-matching service by keyword overlap with the listing's title +
+    description — NOT the cheapest service in the profile. An agency's price
+    list typically spans small and large offerings (e.g. a monthly retainer
+    vs. a full system build); picking by lowest price_from_pln would quote a
+    "strona WWW" rate on a lead that's actually asking for something else
+    entirely. Falls back to the first listed service if nothing matches."""
+    if not services:
+        return {}
+    text_lower = text.lower()
+    best, best_score = services[0], -1
+    for svc in services:
+        name_words = [w for w in str(svc.get("name", "")).lower().split() if len(w) > 2]
+        score = sum(1 for w in name_words if w in text_lower)
+        if score > best_score:
+            best, best_score = svc, score
+    return best
+
+
 def generate_offer(listing, profile: dict) -> dict:
     """HRL Digital sales agent — drafts an outreach offer for a Portal Radar
     lead, grounded ONLY in the agency's own profile facts. Never invents
@@ -603,7 +622,8 @@ def generate_offer(listing, profile: dict) -> dict:
     is_polish = language == "pl" or (not language and _looks_polish(title + " " + description))
 
     services = profile.get("services", [])
-    base_price = min((s.get("price_from_pln") or 0) for s in services) if services else 0
+    service = _pick_relevant_service(f"{title} {description}", services)
+    base_price = service.get("price_from_pln") or 0
     portfolio = profile.get("portfolio", [])
 
     if llm_enabled():
@@ -651,7 +671,6 @@ def generate_offer(listing, profile: dict) -> dict:
             }
 
     # Fallback: template substitution, no LLM involved.
-    service = services[0] if services else {}
     price_min = float(budget_min or base_price or 0)
     price_max = float(budget_max or (price_min * 1.3 if price_min else base_price * 1.3))
     if is_polish:
