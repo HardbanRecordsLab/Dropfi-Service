@@ -366,6 +366,12 @@ class ExternalListingOut(ORMModel):
     pipeline_note: Optional[str] = None
 
 
+class PipelineUpdate(BaseModel):
+    status: str
+    amount_pln: Optional[float] = None
+    note: Optional[str] = None
+
+
 class ExternalTalentOut(ORMModel):
     id: str
     source: str
