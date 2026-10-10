@@ -124,6 +124,12 @@ class Settings(BaseSettings):
     USAJOBS_EMAIL: str = ""
     GITHUB_TOKEN: str = ""               # optional — raises GitHub talent-search rate limit
 
+    # HRL Digital sales agent — scores/drafts offers for Portal Radar leads
+    # against the agency's own services (see app/utils/agency_profile.py).
+    AGENCY_PROFILE_PATH: str = "app/data/agency_profile.json"
+    RADAR_ALERT_MIN_SCORE: int = 60          # fit_score threshold to draft an offer + alert
+    RADAR_AUTO_OFFER_MAX: int = 10           # cap on offers drafted per score_and_alert run
+
     @property
     def cors_origins(self) -> list[str]:
         extra = getattr(self, "CORS_ORIGINS_EXTRA", "")

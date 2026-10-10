@@ -47,6 +47,9 @@ backend/.venv/
 backend/tests/test_dropify.db
 .pytest_cache/
 
+# HRL Digital sales-agent profile — real agency data, not a template
+backend/app/data/agency_profile.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

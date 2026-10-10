@@ -40,6 +40,9 @@ services:
     build: ./backend
     container_name: dropify-api
     env_file: ./backend/.env
+    volumes:
+      # HRL Digital sales-agent profile — real data, mounted read-only, never baked into the image.
+      - ./backend/app/data/agency_profile.json:/app/app/data/agency_profile.json:ro
     ports:
       - "127.0.0.1:8770:8000"
     depends_on:
@@ -59,6 +62,8 @@ services:
     build: ./backend
     container_name: dropify-worker
     env_file: ./backend/.env
+    volumes:
+      - ./backend/app/data/agency_profile.json:/app/app/data/agency_profile.json:ro
     command: celery -A app.tasks.celery_app.celery_app worker --loglevel=info --concurrency=2
     depends_on:
       redis:
