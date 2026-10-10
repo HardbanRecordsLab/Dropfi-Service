@@ -126,10 +126,12 @@ def scan_source(slug: str) -> dict:
     db = SessionLocal()
     try:
         log = run_scan(connector, db)
-        return {"source": slug, "ok": log.ok, "listings_new": log.listings_new,
-                "talents_new": log.talents_new, "error": log.error}
+        result = {"source": slug, "ok": log.ok, "listings_new": log.listings_new,
+                  "talents_new": log.talents_new, "error": log.error}
     finally:
         db.close()
+    _trigger_scoring()
+    return result
 
 
 @shared_task(name="app.tasks.radar.scan_all_sources")
@@ -145,4 +147,91 @@ def scan_all_sources() -> dict:
                             "listings_new": log.listings_new, "talents_new": log.talents_new})
     finally:
         db.close()
+    _trigger_scoring()
     return {"scanned": len(results), "results": results}
+
+
+def _trigger_scoring() -> None:
+    """Fire score_and_alert_new_listings after a scan. A failure here — broker
+    down, scoring error, n8n unreachable — must never make the scan itself
+    look like it failed, so every path is swallowed and logged."""
+    try:
+        score_and_alert_new_listings.delay()
+    except Exception:  # noqa: BLE001 — broker down -> run inline
+        try:
+            score_and_alert_new_listings()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Portal Radar: score_and_alert_new_listings failed — %s", exc)
+
+
+@shared_task(name="app.tasks.radar.score_and_alert_new_listings")
+def score_and_alert_new_listings() -> dict:
+    """HRL Digital sales agent: scores every listing with ``fit_score IS NULL``
+    against the agency profile (``app/utils/agency_profile.py``); for any
+    listing scoring >= ``RADAR_ALERT_MIN_SCORE`` drafts an offer (up to
+    ``RADAR_AUTO_OFFER_MAX`` per run, skipping ones that already have a draft)
+    and sends exactly one Telegram alert via n8n, deduped on ``alerted_at``.
+    Never sends an offer itself — I always copy/send it by hand.
+    """
+    from app.utils.agency_profile import load_agency_profile
+    from app.utils.ai import generate_offer
+    from app.utils.n8n import notify_n8n
+    from app.utils.radar_scoring import score_listing
+
+    db = SessionLocal()
+    scored = alerted = offers_generated = 0
+    try:
+        profile = load_agency_profile()
+
+        unscored = db.query(ExternalListing).filter(ExternalListing.fit_score.is_(None)).all()
+        for row in unscored:
+            score, reason = score_listing(row, profile)
+            row.fit_score = float(score)
+            row.fit_reason = reason
+            scored += 1
+        db.commit()
+
+        if profile.get("is_template"):
+            return {"scored": scored, "alerted": 0, "offers_generated": 0,
+                    "skipped": "agency_profile.json is still the template"}
+
+        to_alert = (
+            db.query(ExternalListing)
+            .filter(ExternalListing.fit_score >= settings.RADAR_ALERT_MIN_SCORE,
+                    ExternalListing.alerted_at.is_(None))
+            .order_by(ExternalListing.fit_score.desc())
+            .limit(settings.RADAR_AUTO_OFFER_MAX)
+            .all()
+        )
+        for row in to_alert:
+            try:
+                if not row.offer_text:
+                    offer = generate_offer(row, profile)
+                    row.offer_text = offer["offer_text"]
+                    row.offer_language = offer["offer_language"]
+                    row.offer_price_min = offer["price_min"]
+                    row.offer_price_max = offer["price_max"]
+                    row.offer_questions = offer["questions"]
+                    row.offer_generated_at = datetime.now(timezone.utc)
+                    offers_generated += 1
+                row.alerted_at = datetime.now(timezone.utc)
+                db.commit()
+
+                notify_n8n("radar-lead", {
+                    "id": row.id,
+                    "title": row.title,
+                    "source": row.source,
+                    "url": row.url,
+                    "budget_text": row.budget_text,
+                    "fit_score": row.fit_score,
+                    "fit_reason": row.fit_reason,
+                    "offer_text": (row.offer_text or "")[:1500],
+                    "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/radar?listing={row.id}",
+                })
+                alerted += 1
+            except Exception as exc:  # noqa: BLE001 — one bad listing must not stop the rest
+                db.rollback()
+                logger.warning("Portal Radar: alert failed for listing %s — %s", row.id, exc)
+    finally:
+        db.close()
+    return {"scored": scored, "alerted": alerted, "offers_generated": offers_generated}

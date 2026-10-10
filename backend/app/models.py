@@ -453,6 +453,26 @@ class ExternalListing(TimestampMixin, Base):
     imported_job_id = Column(String(32), ForeignKey("jobs.id"), nullable=True)
     raw = Column(JSON, default=dict)
 
+    # HRL Digital sales agent — fit scoring + drafted offer (see
+    # app/utils/radar_scoring.py, app/utils/ai.py:generate_offer).
+    fit_score = Column(Float, nullable=True, index=True)
+    fit_reason = Column(Text, nullable=True)
+    offer_text = Column(Text, nullable=True)
+    offer_language = Column(String(10), nullable=True)
+    offer_price_min = Column(Float, nullable=True)
+    offer_price_max = Column(Float, nullable=True)
+    offer_questions = Column(JSON, nullable=True)
+    offer_generated_at = Column(DateTime(timezone=True), nullable=True)
+    alerted_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Manual pipeline tracking — I send the offer myself; this just tracks outcome.
+    pipeline = Column(String(20), nullable=True, index=True)  # applied | replied | won | lost
+    applied_at = Column(DateTime(timezone=True), nullable=True)
+    replied_at = Column(DateTime(timezone=True), nullable=True)
+    closed_at = Column(DateTime(timezone=True), nullable=True)
+    won_amount_pln = Column(Float, nullable=True)
+    pipeline_note = Column(Text, nullable=True)
+
     imported_job = relationship("Job", foreign_keys=[imported_job_id])
 
 

@@ -1,0 +1,25 @@
+{
+  "agency_name": "TODO",
+  "tagline": "TODO — one sentence describing HRL Digital",
+  "services": [
+    {
+      "name": "TODO — e.g. Strona WWW",
+      "description": "TODO",
+      "price_from_pln": 0,
+      "typical_timeline": "TODO — e.g. 2-3 tygodnie"
+    }
+  ],
+  "keywords_include": [],
+  "keywords_exclude": [],
+  "min_budget_pln": 0,
+  "languages": ["pl", "en"],
+  "portfolio": [
+    {
+      "title": "TODO",
+      "url": "TODO",
+      "one_liner": "TODO"
+    }
+  ],
+  "tone": "TODO — e.g. rzeczowy, bez marketingowego lania wody",
+  "signature": "TODO — e.g. Kamil, HRL Digital"
+}

@@ -16,7 +16,9 @@ from app.connectors import registry
 from app.database import get_db
 from app.deps import get_current_user, require_role
 from app.models import ExternalListing, ExternalTalent, RadarScanLog, User
-from app.schemas import ExternalListingOut, ExternalTalentOut, RadarSourceOut
+from app.schemas import ExternalListingOut, ExternalTalentOut, PipelineUpdate, RadarSourceOut
+from app.utils.agency_profile import load_agency_profile
+from app.utils.ai import generate_offer
 from app.utils.jobs import create_job_and_match
 from app.utils.security import hash_password, make_referral_code
 
@@ -24,6 +26,7 @@ router = APIRouter(prefix="/radar", tags=["Portal Radar"])
 logger = logging.getLogger(__name__)
 
 _TALENT_STATUSES = {"new", "contacted", "invited", "dismissed"}
+_PIPELINE_STATUSES = {"applied", "replied", "won", "lost"}
 
 
 def _radar_bot(db: Session) -> User:
@@ -115,6 +118,9 @@ def list_listings(
     status: str = "",
     remote: bool | None = None,
     q: str = "",
+    min_score: float | None = Query(None, description="only listings with fit_score >= this"),
+    pipeline: str = Query("", description="applied | replied | won | lost"),
+    sort: str = Query("", description="'score' sorts by fit_score desc; default sorts by fetched_at desc"),
     skip: int = 0,
     limit: int = Query(50, le=200),
     user: User = Depends(get_current_user),
@@ -132,7 +138,17 @@ def list_listings(
     if q:
         like = f"%{q}%"
         query = query.filter(ExternalListing.title.ilike(like) | ExternalListing.description.ilike(like))
-    return (query.order_by(ExternalListing.fetched_at.desc())
+    if min_score is not None:
+        query = query.filter(ExternalListing.fit_score >= min_score)
+    if pipeline:
+        query = query.filter(ExternalListing.pipeline == pipeline)
+
+    if sort == "score":
+        # NULL fit_score (not yet scored) sorts after everything scored, highest first.
+        order = (ExternalListing.fit_score.is_(None), ExternalListing.fit_score.desc())
+    else:
+        order = (ExternalListing.fetched_at.desc(),)
+    return (query.order_by(*order)
             .offset(skip).limit(limit).all())
 
 
@@ -177,6 +193,73 @@ def import_listing(
     row.imported_job_id = job.id
     db.commit()
     return {"status": "imported", "job_id": job.id}
+
+
+@router.post("/listings/{listing_id}/offer", response_model=ExternalListingOut)
+def generate_listing_offer(
+    listing_id: str,
+    regenerate: bool = Query(False, description="regenerate even if an offer already exists"),
+    user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    row = db.get(ExternalListing, listing_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if row.offer_text and not regenerate:
+        return row
+
+    profile = load_agency_profile()
+    if profile.get("is_template"):
+        raise HTTPException(
+            status_code=409,
+            detail="Profil agencji (agency_profile.json) nie jest jeszcze uzupełniony — uzupełnij "
+                   "dane HRL Digital zanim wygenerujesz ofertę.",
+        )
+
+    result = generate_offer(row, profile)
+    row.offer_text = result["offer_text"]
+    row.offer_language = result["offer_language"]
+    row.offer_price_min = result["price_min"]
+    row.offer_price_max = result["price_max"]
+    row.offer_questions = result["questions"]
+    row.offer_generated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.post("/listings/{listing_id}/pipeline", response_model=ExternalListingOut)
+def update_listing_pipeline(
+    listing_id: str,
+    body: PipelineUpdate,
+    user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    if body.status not in _PIPELINE_STATUSES:
+        raise HTTPException(status_code=422, detail=f"status must be one of {sorted(_PIPELINE_STATUSES)}")
+    if body.status == "won" and not body.amount_pln:
+        raise HTTPException(status_code=422, detail="Wygrana wymaga podania kwoty (amount_pln).")
+
+    row = db.get(ExternalListing, listing_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
+    now = datetime.now(timezone.utc)
+    row.pipeline = body.status
+    if body.status == "applied":
+        row.applied_at = now
+    elif body.status == "replied":
+        row.replied_at = now
+    elif body.status == "won":
+        row.closed_at = now
+        row.won_amount_pln = body.amount_pln
+    elif body.status == "lost":
+        row.closed_at = now
+    if body.note is not None:
+        row.pipeline_note = body.note
+    db.commit()
+    db.refresh(row)
+    return row
 
 
 @router.post("/listings/{listing_id}/dismiss")
@@ -255,6 +338,33 @@ def radar_stats(user: User = Depends(get_current_user), db: Session = Depends(ge
         return dict(db.query(model.status, func.count(model.id)).group_by(model.status).all())
 
     last_scan = db.query(func.max(RadarScanLog.started_at)).scalar()
+
+    now = datetime.now(timezone.utc)
+    relevant_24h = (
+        db.query(func.count(ExternalListing.id))
+        .filter(ExternalListing.fit_score >= settings.RADAR_ALERT_MIN_SCORE,
+                ExternalListing.fetched_at >= now - timedelta(hours=24))
+        .scalar() or 0
+    )
+    relevant_7d = (
+        db.query(func.count(ExternalListing.id))
+        .filter(ExternalListing.fit_score >= settings.RADAR_ALERT_MIN_SCORE,
+                ExternalListing.fetched_at >= now - timedelta(days=7))
+        .scalar() or 0
+    )
+    pipeline_counts = dict(
+        db.query(ExternalListing.pipeline, func.count(ExternalListing.id))
+        .filter(ExternalListing.pipeline.isnot(None))
+        .group_by(ExternalListing.pipeline).all()
+    )
+    sent_total = (db.query(func.count(ExternalListing.id))
+                  .filter(ExternalListing.applied_at.isnot(None)).scalar() or 0)
+    replied_total = (db.query(func.count(ExternalListing.id))
+                      .filter(ExternalListing.replied_at.isnot(None)).scalar() or 0)
+    won_total = pipeline_counts.get("won", 0)
+    won_total_pln = (db.query(func.coalesce(func.sum(ExternalListing.won_amount_pln), 0.0))
+                      .filter(ExternalListing.pipeline == "won").scalar() or 0.0)
+
     return {
         "listings": {
             "total": db.query(func.count(ExternalListing.id)).scalar() or 0,
@@ -267,4 +377,13 @@ def radar_stats(user: User = Depends(get_current_user), db: Session = Depends(ge
         "sources_enabled": len(registry.enabled_connectors()),
         "sources_total": len(registry.ALL_CONNECTORS),
         "last_scan_at": last_scan,
+        "sales_agent": {
+            "relevant_24h": relevant_24h,
+            "relevant_7d": relevant_7d,
+            "pipeline": pipeline_counts,
+            "sent_total": sent_total,
+            "reply_rate": round(replied_total / sent_total, 4) if sent_total else 0.0,
+            "win_rate": round(won_total / sent_total, 4) if sent_total else 0.0,
+            "won_total_pln": won_total_pln,
+        },
     }

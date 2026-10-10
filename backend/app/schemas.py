@@ -348,6 +348,29 @@ class ExternalListingOut(ORMModel):
     status: str = "new"
     imported_job_id: Optional[str] = None
 
+    # HRL Digital sales agent
+    fit_score: Optional[float] = None
+    fit_reason: Optional[str] = None
+    offer_text: Optional[str] = None
+    offer_language: Optional[str] = None
+    offer_price_min: Optional[float] = None
+    offer_price_max: Optional[float] = None
+    offer_questions: Optional[List[str]] = None
+    offer_generated_at: Optional[datetime] = None
+    alerted_at: Optional[datetime] = None
+    pipeline: Optional[str] = None
+    applied_at: Optional[datetime] = None
+    replied_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+    won_amount_pln: Optional[float] = None
+    pipeline_note: Optional[str] = None
+
+
+class PipelineUpdate(BaseModel):
+    status: str
+    amount_pln: Optional[float] = None
+    note: Optional[str] = None
+
 
 class ExternalTalentOut(ORMModel):
     id: str

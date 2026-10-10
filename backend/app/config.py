@@ -116,13 +116,27 @@ class Settings(BaseSettings):
     RADAR_SCAN_INTERVAL_HOURS: int = 6
     RADAR_MAX_PER_SOURCE: int = 50
     RADAR_HTTP_TIMEOUT: int = 15
-    # Connectors parked until their public endpoint is re-verified (comma-separated slugs)
+    # Connectors parked until their public endpoint is re-verified (comma-separated slugs).
+    # useme: re-checked 2026-10-10 — https://useme.com/pl/rss/jobs/ now returns a
+    # Cloudflare "Just a moment..." JS challenge (HTTP 403) to a plain HTTP client,
+    # not RSS XML. The parser itself (connectors/useme.py) is still correct — verified
+    # against a sample feed in tests/test_connector_useme.py — but there is currently no
+    # way to fetch the live feed without a browser-grade client solving that challenge,
+    # which would cross the "no bypassing portal security measures" rule. Stays disabled
+    # until useme's feed is reachable again via a plain HTTP request, or they document an
+    # official bot/API allowlist.
     RADAR_DISABLED_SOURCES: str = "useme,justjoinit"
     ADZUNA_APP_ID: str = ""              # optional — enables the Adzuna connector
     ADZUNA_APP_KEY: str = ""
     USAJOBS_API_KEY: str = ""            # optional — enables the USAJOBS connector
     USAJOBS_EMAIL: str = ""
     GITHUB_TOKEN: str = ""               # optional — raises GitHub talent-search rate limit
+
+    # HRL Digital sales agent — scores/drafts offers for Portal Radar leads
+    # against the agency's own services (see app/utils/agency_profile.py).
+    AGENCY_PROFILE_PATH: str = "app/data/agency_profile.json"
+    RADAR_ALERT_MIN_SCORE: int = 60          # fit_score threshold to draft an offer + alert
+    RADAR_AUTO_OFFER_MAX: int = 10           # cap on offers drafted per score_and_alert run
 
     @property
     def cors_origins(self) -> list[str]:

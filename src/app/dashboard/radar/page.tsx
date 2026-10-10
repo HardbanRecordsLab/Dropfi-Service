@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from "react";
 import DashShell from "@/components/DashShell";
-import { Badge, Btn, Loading, Toast, inputStyle } from "@/components/ui";
+import { Badge, Btn, Loading, StatCard, Toast, inputStyle } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
-import type { ExternalListing, ExternalTalent, RadarSource } from "@/lib/types";
+import type { ExternalListing, ExternalTalent, RadarSource, RadarStats } from "@/lib/types";
+
+// RADAR_ALERT_MIN_SCORE on the backend defaults to 60 and isn't exposed via
+// an endpoint; "only relevant" mirrors that default rather than reading the
+// live setting.
+const RELEVANT_SCORE_THRESHOLD = 60;
 
 type Tab = "listings" | "talent" | "sources";
 
@@ -24,10 +29,17 @@ export default function RadarPage() {
   const [listings, setListings] = useState<ExternalListing[]>([]);
   const [talent, setTalent] = useState<ExternalTalent[]>([]);
   const [sources, setSources] = useState<RadarSource[]>([]);
+  const [stats, setStats] = useState<RadarStats | null>(null);
 
   const [q, setQ] = useState("");
   const [source, setSource] = useState("");
   const [remoteOnly, setRemoteOnly] = useState(false);
+  const [onlyRelevant, setOnlyRelevant] = useState(false);
+  const [sortByScore, setSortByScore] = useState(false);
+
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [offerDrafts, setOfferDrafts] = useState<Record<string, string>>({});
+  const [wonAmounts, setWonAmounts] = useState<Record<string, string>>({});
 
   // Plain closure function — recreated each render, so it always sees the
   // latest filter values. Not a hook and not in any dependency array.
@@ -36,16 +48,20 @@ export default function RadarPage() {
     if (q.trim()) p.set("q", q.trim());
     if (source) p.set("source", source);
     if (remoteOnly) p.set("remote", "true");
+    if (onlyRelevant) p.set("min_score", String(RELEVANT_SCORE_THRESHOLD));
+    if (sortByScore) p.set("sort", "score");
     const listParams = p.toString() ? `?${p.toString()}` : "";
     try {
-      const [l, tl, s] = await Promise.all([
+      const [l, tl, s, st] = await Promise.all([
         API.radarListings(listParams) as Promise<ExternalListing[]>,
         API.radarTalent(source ? `?source=${source}` : "") as Promise<ExternalTalent[]>,
         API.radarSources() as Promise<RadarSource[]>,
+        API.radarStats() as Promise<RadarStats>,
       ]);
       setListings(l);
       setTalent(tl);
       setSources(s);
+      setStats(st);
     } catch (err) {
       setMsg(getErrorMessage(err));
     } finally {
@@ -58,15 +74,17 @@ export default function RadarPage() {
     let active = true;
     (async () => {
       try {
-        const [l, tl, s] = await Promise.all([
+        const [l, tl, s, st] = await Promise.all([
           API.radarListings("") as Promise<ExternalListing[]>,
           API.radarTalent("") as Promise<ExternalTalent[]>,
           API.radarSources() as Promise<RadarSource[]>,
+          API.radarStats() as Promise<RadarStats>,
         ]);
         if (!active) return;
         setListings(l);
         setTalent(tl);
         setSources(s);
+        setStats(st);
       } catch (err) {
         if (active) setMsg(getErrorMessage(err));
       } finally {
@@ -103,6 +121,46 @@ export default function RadarPage() {
     }
   };
 
+  const toggleDetails = (id: string) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const generateOffer = async (id: string, regenerate: boolean) => {
+    setBusy(true);
+    try {
+      const row = (await API.radarGenerateOffer(id, regenerate)) as ExternalListing;
+      setListings((prev) => prev.map((l) => (l.id === id ? row : l)));
+      setOfferDrafts((prev) => ({ ...prev, [id]: row.offer_text || "" }));
+    } catch (err) {
+      setMsg(getErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copyOffer = async (id: string, fallback: string) => {
+    const text = offerDrafts[id] ?? fallback;
+    try {
+      await navigator.clipboard.writeText(text);
+      setMsg(t("radar.offer.copied"));
+    } catch (err) {
+      setMsg(getErrorMessage(err));
+    }
+  };
+
+  const updatePipeline = async (id: string, status: "applied" | "replied" | "won" | "lost") => {
+    if (status === "won") {
+      const amount = Number(wonAmounts[id]);
+      if (!amount || amount <= 0) {
+        setMsg(t("radar.pipeline.amountRequired"));
+        return;
+      }
+      await act(() => API.radarUpdatePipeline(id, { status, amount_pln: amount }));
+      return;
+    }
+    await act(() => API.radarUpdatePipeline(id, { status }));
+  };
+
   if (loading) return <DashShell><Loading /></DashShell>;
 
   const tabBtn = (id: Tab, label: string) => (
@@ -134,6 +192,17 @@ export default function RadarPage() {
         <p style={{ color: "var(--text-secondary)", fontWeight: "300", marginTop: "0.5rem", maxWidth: "680px" }}>{t("radar.subtitle")}</p>
       </header>
 
+      {isAdmin && stats && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1.2rem", marginBottom: "2rem" }}>
+          <StatCard icon="🎯" label={t("radar.stats.relevant24h")} value={stats.sales_agent.relevant_24h} />
+          <StatCard icon="📈" label={t("radar.stats.relevant7d")} value={stats.sales_agent.relevant_7d} />
+          <StatCard icon="✉️" label={t("radar.stats.sent")} value={stats.sales_agent.sent_total} />
+          <StatCard icon="↩️" label={t("radar.stats.replyRate")} value={`${Math.round(stats.sales_agent.reply_rate * 100)}%`} />
+          <StatCard icon="🏆" label={t("radar.stats.winRate")} value={`${Math.round(stats.sales_agent.win_rate * 100)}%`} />
+          <StatCard icon="💰" label={t("radar.stats.wonTotal")} value={`${stats.sales_agent.won_total_pln.toLocaleString()} PLN`} />
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: "0.6rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         {tabBtn("listings", t("radar.tab.listings"))}
         {tabBtn("talent", t("radar.tab.talent"))}
@@ -149,10 +218,21 @@ export default function RadarPage() {
             {sources.map((s) => <option key={s.slug} value={s.slug}>{s.name}</option>)}
           </select>
           {tab === "listings" && (
-            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-              <input type="checkbox" checked={remoteOnly} onChange={(e) => setRemoteOnly(e.target.checked)} />
-              {t("radar.filter.remote")}
-            </label>
+            <>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                <input type="checkbox" checked={remoteOnly} onChange={(e) => setRemoteOnly(e.target.checked)} />
+                {t("radar.filter.remote")}
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                <input type="checkbox" checked={onlyRelevant} onChange={(e) => setOnlyRelevant(e.target.checked)} />
+                {t("radar.filter.onlyRelevant")}
+              </label>
+              <select style={{ ...inputStyle, maxWidth: "180px" }} value={sortByScore ? "score" : "newest"}
+                onChange={(e) => setSortByScore(e.target.value === "score")}>
+                <option value="newest">{t("radar.sort.newest")}</option>
+                <option value="score">{t("radar.sort.score")}</option>
+              </select>
+            </>
           )}
           <Btn variant="outline" onClick={() => load()} disabled={busy}>{t("radar.search")}</Btn>
         </div>
@@ -174,6 +254,16 @@ export default function RadarPage() {
                       <Badge>{l.source}</Badge>
                       {l.is_remote && <Badge>remote</Badge>}
                       {l.status !== "new" && <Badge>{l.status === "imported" ? t("radar.imported") : t("radar.dismissed")}</Badge>}
+                      {l.fit_score !== null && (
+                        <Badge color={l.fit_score >= RELEVANT_SCORE_THRESHOLD ? "#4ade80" : "var(--accent-gold)"}>
+                          {t("radar.score")}: {Math.round(l.fit_score)}
+                        </Badge>
+                      )}
+                      {l.pipeline && (
+                        <Badge color={l.pipeline === "won" ? "#4ade80" : l.pipeline === "lost" ? "#f87171" : "var(--accent-gold)"}>
+                          {t(`radar.pipeline.${l.pipeline}`)}
+                        </Badge>
+                      )}
                     </div>
                     <div style={{ fontWeight: "700", fontSize: "1.02rem" }}>{l.title}</div>
                     <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
@@ -194,8 +284,70 @@ export default function RadarPage() {
                         <Btn variant="ghost" onClick={() => act(() => API.radarDismissListing(l.id))} disabled={busy}>{t("radar.dismiss")}</Btn>
                       </>
                     )}
+                    {isAdmin && (
+                      <Btn variant="ghost" onClick={() => toggleDetails(l.id)} disabled={busy} style={{ padding: "0.5rem 1rem" }}>
+                        {expanded[l.id] ? t("radar.hideDetails") : t("radar.details")}
+                      </Btn>
+                    )}
                   </div>
                 </div>
+
+                {isAdmin && expanded[l.id] && (
+                  <div style={{ marginTop: "1.1rem", paddingTop: "1.1rem", borderTop: "1px solid var(--border-subtle)" }}>
+                    {l.fit_reason && (
+                      <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "0.8rem" }}>{l.fit_reason}</p>
+                    )}
+
+                    <div style={{ display: "flex", gap: "0.6rem", marginBottom: "0.8rem", flexWrap: "wrap" }}>
+                      <Btn variant="outline" disabled={busy}
+                        onClick={() => generateOffer(l.id, !!l.offer_text)}>
+                        {l.offer_text ? t("radar.offer.regenerate") : t("radar.offer.generate")}
+                      </Btn>
+                      {l.offer_text && (
+                        <Btn variant="ghost" disabled={busy} onClick={() => copyOffer(l.id, l.offer_text || "")}>
+                          {t("radar.offer.copy")}
+                        </Btn>
+                      )}
+                    </div>
+
+                    {l.offer_text && (
+                      <>
+                        <textarea
+                          value={offerDrafts[l.id] ?? l.offer_text}
+                          onChange={(e) => setOfferDrafts((prev) => ({ ...prev, [l.id]: e.target.value }))}
+                          style={{ ...inputStyle, minHeight: "140px", resize: "vertical", fontSize: "0.85rem", marginBottom: "0.8rem" }}
+                        />
+                        {(l.offer_price_min || l.offer_price_max) && (
+                          <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "0.6rem" }}>
+                            {t("radar.offer.priceRange")}: {l.offer_price_min ?? "?"}–{l.offer_price_max ?? "?"} PLN
+                          </div>
+                        )}
+                        {l.offer_questions && l.offer_questions.length > 0 && (
+                          <div style={{ marginBottom: "0.8rem" }}>
+                            <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.3rem" }}>{t("radar.offer.questions")}:</div>
+                            <ul style={{ fontSize: "0.8rem", color: "var(--text-secondary)", paddingLeft: "1.2rem" }}>
+                              {l.offer_questions.map((q2, i) => <li key={i}>{q2}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center", marginTop: "0.6rem" }}>
+                      <Btn variant="outline" disabled={busy} onClick={() => updatePipeline(l.id, "applied")} style={{ padding: "0.6rem 1.2rem" }}>{t("radar.pipeline.applied")}</Btn>
+                      <Btn variant="outline" disabled={busy} onClick={() => updatePipeline(l.id, "replied")} style={{ padding: "0.6rem 1.2rem" }}>{t("radar.pipeline.replied")}</Btn>
+                      <input
+                        type="number"
+                        placeholder={t("radar.pipeline.amountPlaceholder")}
+                        value={wonAmounts[l.id] ?? ""}
+                        onChange={(e) => setWonAmounts((prev) => ({ ...prev, [l.id]: e.target.value }))}
+                        style={{ ...inputStyle, maxWidth: "140px", padding: "0.6rem 0.8rem" }}
+                      />
+                      <Btn variant="outline" disabled={busy} onClick={() => updatePipeline(l.id, "won")} style={{ padding: "0.6rem 1.2rem" }}>{t("radar.pipeline.won")}</Btn>
+                      <Btn variant="ghost" disabled={busy} onClick={() => updatePipeline(l.id, "lost")} style={{ padding: "0.6rem 1.2rem" }}>{t("radar.pipeline.lost")}</Btn>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
