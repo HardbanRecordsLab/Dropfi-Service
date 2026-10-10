@@ -589,9 +589,48 @@ HN „Who is hiring", Useme (PL), Just Join IT (PL), Adzuna*, USAJOBS*, GitHub, 
 | `/api/radar/listings/{id}/import` | POST | Client/Admin | Import leada → nowy Job + AI matching |
 | `/api/radar/listings/{id}/dismiss` | POST | Client/Admin | Odrzuć lead |
 | `/api/radar/talent/{id}/status` | POST | Client/Admin | `contacted` / `invited` / `dismissed` |
-| `/api/radar/stats` | GET | Tak | Liczniki wg statusu + stan źródeł |
+| `/api/radar/stats` | GET | Tak | Liczniki wg statusu + stan źródeł + sekcja `sales_agent` |
+| `/api/radar/listings/{id}/offer` | POST | Admin | Wygeneruj/odśwież szkic oferty (`?regenerate=`) |
+| `/api/radar/listings/{id}/pipeline` | POST | Admin | Ustaw status pipeline (`applied`/`replied`/`won`/`lost`) |
 
 Interactive docs: `https://your-backend/docs` (Swagger UI).
+
+#### Tryb agenta sprzedażowego (HRL Digital)
+
+Portal Radar ocenia też, na bieżąco, każdy nowy lead jako potencjalnego klienta
+**agencji HRL Digital** (strony WWW, web appy, systemy dla firm) — osobna warstwa
+nad tym samym skanem, nic z istniejącego demand/supply flow nie zmieniona.
+
+- **Profil agencji**: `backend/app/data/agency_profile.json` (gitignored; realne dane —
+  nazwa, usługi, cennik, słowa kluczowe, portfolio, ton). Szablon do wypełnienia:
+  `agency_profile.example.json`. Brak pliku / same `"TODO"` → `is_template=True`,
+  blokuje generowanie ofert i alerty (`app/utils/agency_profile.py`).
+- **Scoring** (`app/utils/radar_scoring.py`, `score_listing`): 0-100, czysta funkcja —
+  podobieństwo semantyczne do profilu (reużywa `embed_text`/`cosine_similarity`
+  z `app/utils/ai.py`) + pokrycie słów kluczowych + budżet vs. `min_budget_pln` +
+  język + świeżość. Trafienie `keywords_exclude` → od razu 0.
+- **Szkic oferty** (`app/utils/ai.py`, `generate_offer`): PL/EN (język ogłoszenia),
+  ≤150 słów, widełki cenowe + 2-3 pytania do klienta. Treść ogłoszenia (dane
+  z zewnętrznego portalu) jest otoczona delimiterami `<<<LISTING_START/END>>>`
+  i opisana jako dane, nie polecenia — ochrona przed prompt injection. Bez klucza
+  LLM działa deterministyczny fallback na podstawie samych faktów z profilu.
+  Agent **nigdy nie wysyła oferty sam** — tylko przygotowuje szkic do ręcznej wysyłki.
+- **Automat po skanie** (`app.tasks.radar.score_and_alert_new_listings`): po każdym
+  skanie (`scan_source`/`scan_all_sources`/`POST /radar/scan`) ocenia nowe leady; dla
+  `fit_score >= RADAR_ALERT_MIN_SCORE` (domyślnie 60) generuje ofertę (limit
+  `RADAR_AUTO_OFFER_MAX`/run) i wysyła jedno powiadomienie Telegram przez n8n
+  (`n8n-workflows/dropify-06-radar-lead-telegram.json`), deduplikowane na `alerted_at`.
+  Błąd w tej warstwie nigdy nie przerywa samego skanu.
+- **Pipeline i statystyki**: ręczne śledzenie `wysłano → odpowiedź → wygrane (z kwotą)
+  / przegrane` przez `POST /radar/listings/{id}/pipeline`; `GET /radar/stats.sales_agent`
+  liczy `relevant_24h/7d`, liczniki per-status, `reply_rate`, `win_rate`, `won_total_pln`.
+- **Frontend**: `/dashboard/radar` — badge trafności, filtr „tylko trafne", sortowanie
+  po trafności, panel szczegółów (generuj/kopiuj ofertę, widełki, pytania, przyciski
+  pipeline), kafelki statystyk — widoczne dla admina.
+- **Useme**: zostaje w `RADAR_DISABLED_SOURCES` — na 2026-10-10 `useme.com/pl/rss/jobs/`
+  odpowiada wyzwaniem Cloudflare (HTTP 403) zwykłemu klientowi HTTP, a omijanie tego
+  byłoby obejściem zabezpieczeń portalu (zabronione). Parser sam jest poprawny —
+  zweryfikowany na przykładowym XML w `tests/test_connector_useme.py`.
 
 ---
 
