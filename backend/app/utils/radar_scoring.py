@@ -28,6 +28,22 @@ FRESHNESS_WEIGHT = 5
 
 FRESHNESS_DAYS = 14
 
+# HRL Digital sells project work, not jobs for a person to fill. Full-time-
+# employment listings (hiring boards mixed into otherwise-relevant sources)
+# otherwise score similarly to real project leads under the weights above,
+# so they're explicitly penalized/boosted on top of the weighted total.
+_FULL_TIME_SIGNALS = (
+    "etat", "umowa o pracę", "umowa o prace", "pełny wymiar", "full-time", "full time",
+    "part-time", "part time", "permanent position", "(m/w/d)", "m/w/d", "(f/m/d)", "f/m/d",
+    "(m/f)", "(f/m)", "pracownik etatowy", "benefits package", "paid holidays", "pto",
+)
+_PROJECT_SIGNALS = (
+    "zlecenie", "zlecenia", "zleceniodawca", "projekt", "freelance", "freelancer",
+    "umowa zlecenie", "umowa o dzieło", "umowa o dzielo", "jednorazowe", "b2b", "kontrakt",
+)
+FULL_TIME_PENALTY = 20
+PROJECT_BONUS = 10
+
 
 def _text_of(listing: Any) -> str:
     title = getattr(listing, "title", "") or ""
@@ -102,6 +118,13 @@ def score_listing(listing: Any, profile: dict) -> tuple[int, str]:
     freshness_points = _freshness_component(listing)
 
     total = semantic_points + keyword_points + budget_points + language_points + freshness_points
+
+    is_full_time = any(sig in text for sig in _FULL_TIME_SIGNALS)
+    is_project = any(sig in text for sig in _PROJECT_SIGNALS)
+    if is_full_time:
+        total -= FULL_TIME_PENALTY
+    if is_project:
+        total += PROJECT_BONUS
     score = int(round(max(0.0, min(100.0, total))))
 
     category = getattr(listing, "category", "") or "brak kategorii"
@@ -111,6 +134,10 @@ def score_listing(listing: Any, profile: dict) -> tuple[int, str]:
         reason_parts.append("pasuje: " + ", ".join(matched[:3]))
     if language_note:
         reason_parts.append(language_note)
+    if is_full_time:
+        reason_parts.append("sygnały pracy na etat (obniżono wynik)")
+    if is_project:
+        reason_parts.append("sygnały zlecenia/projektu (podwyższono wynik)")
     fit_reason = ", ".join(str(p) for p in reason_parts if p) + "."
 
     return score, fit_reason

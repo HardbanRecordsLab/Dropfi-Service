@@ -7,6 +7,8 @@ from .adzuna import AdzunaConnector
 from .arbeitnow import ArbeitnowConnector
 from .base import Connector
 from .devto import DevToConnector
+from .freelancehunt import FreelancehuntConnector
+from .freelancer import FreelancerConnector
 from .github import GitHubConnector
 from .hn_hiring import HackerNewsHiringConnector
 from .jobicy import JobicyConnector
@@ -17,6 +19,7 @@ from .stackoverflow import StackOverflowConnector
 from .usajobs import USAJobsConnector
 from .useme import UsemeConnector
 from .weworkremotely import WeWorkRemotelyConnector
+from .wpzlecenia import WpZleceniaConnector
 
 ALL_CONNECTORS: list[Connector] = [
     # demand side — job / gig leads
@@ -30,6 +33,9 @@ ALL_CONNECTORS: list[Connector] = [
     JustJoinItConnector(),
     AdzunaConnector(),
     USAJobsConnector(),
+    WpZleceniaConnector(),
+    FreelancehuntConnector(),
+    FreelancerConnector(),
     # supply side — contractor / specialist profiles
     GitHubConnector(),
     StackOverflowConnector(),

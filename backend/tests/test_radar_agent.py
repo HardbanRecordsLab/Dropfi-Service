@@ -125,6 +125,21 @@ def test_score_listing_penalizes_unsupported_language():
     assert pl_score > de_score
 
 
+def test_score_listing_penalizes_full_time_employment_signals():
+    # Same underlying work, but one reads as a job opening (etat), not a project.
+    project = _FakeListing(title="Potrzebuję strony WWW dla firmy",
+                            description="Zlecenie na stronę firmową, landing page.",
+                            budget_max=5000, language="pl")
+    job = _FakeListing(title="Potrzebuję strony WWW dla firmy",
+                        description="Praca na pełny etat, umowa o pracę, strona firmowa.",
+                        budget_max=5000, language="pl")
+    project_score, project_reason = score_listing(project, REAL_PROFILE)
+    job_score, job_reason = score_listing(job, REAL_PROFILE)
+    assert project_score > job_score
+    assert "etat" in job_reason.lower()
+    assert "zlecenia" in project_reason.lower() or "projektu" in project_reason.lower()
+
+
 # ---------------------------------------------------------------------------
 # Offer generation — fallback mode (step 4; no OPENROUTER_API_KEY in tests)
 # ---------------------------------------------------------------------------
