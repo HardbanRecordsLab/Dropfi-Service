@@ -388,6 +388,23 @@ export interface ExternalListing {
   fetched_at: string | null;
   status: "new" | "reviewed" | "imported" | "dismissed";
   imported_job_id: string | null;
+
+  // HRL Digital sales agent
+  fit_score: number | null;
+  fit_reason: string | null;
+  offer_text: string | null;
+  offer_language: string | null;
+  offer_price_min: number | null;
+  offer_price_max: number | null;
+  offer_questions: string[] | null;
+  offer_generated_at: string | null;
+  alerted_at: string | null;
+  pipeline: "applied" | "replied" | "won" | "lost" | null;
+  applied_at: string | null;
+  replied_at: string | null;
+  closed_at: string | null;
+  won_amount_pln: number | null;
+  pipeline_note: string | null;
 }
 
 export interface ExternalTalent {
@@ -431,4 +448,13 @@ export interface RadarStats {
   sources_enabled: number;
   sources_total: number;
   last_scan_at: string | null;
+  sales_agent: {
+    relevant_24h: number;
+    relevant_7d: number;
+    pipeline: Record<string, number>;
+    sent_total: number;
+    reply_rate: number;
+    win_rate: number;
+    won_total_pln: number;
+  };
 }

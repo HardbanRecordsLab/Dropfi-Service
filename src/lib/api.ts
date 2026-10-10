@@ -193,6 +193,10 @@ export const API = {
   radarDismissListing: (id: string) => api(`/radar/listings/${id}/dismiss`, { method: "POST" }),
   radarSetTalentStatus: (id: string, status: string) =>
     api(`/radar/talent/${id}/status?status=${encodeURIComponent(status)}`, { method: "POST" }),
+  radarGenerateOffer: (id: string, regenerate = false) =>
+    api(`/radar/listings/${id}/offer${regenerate ? "?regenerate=true" : ""}`, { method: "POST" }),
+  radarUpdatePipeline: (id: string, body: { status: string; amount_pln?: number; note?: string }) =>
+    api(`/radar/listings/${id}/pipeline`, { method: "POST", body: JSON.stringify(body) }),
 
   // Payments (Stripe checkout, real money movement)
   paymentsConfig: () => api("/payments/config", { auth: false }),
