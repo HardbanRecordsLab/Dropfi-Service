@@ -131,6 +131,7 @@ class Settings(BaseSettings):
     USAJOBS_API_KEY: str = ""            # optional — enables the USAJOBS connector
     USAJOBS_EMAIL: str = ""
     GITHUB_TOKEN: str = ""               # optional — raises GitHub talent-search rate limit
+    FREELANCEHUNT_API_TOKEN: str = ""    # optional — enables the Freelancehunt connector (freelancehunt.com/my/api)
 
     # HRL Digital sales agent — scores/drafts offers for Portal Radar leads
     # against the agency's own services (see app/utils/agency_profile.py).
