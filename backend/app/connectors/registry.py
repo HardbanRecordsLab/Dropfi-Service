@@ -8,6 +8,7 @@ from .arbeitnow import ArbeitnowConnector
 from .base import Connector
 from .devto import DevToConnector
 from .freelancehunt import FreelancehuntConnector
+from .freelancer import FreelancerConnector
 from .github import GitHubConnector
 from .hn_hiring import HackerNewsHiringConnector
 from .jobicy import JobicyConnector
@@ -34,6 +35,7 @@ ALL_CONNECTORS: list[Connector] = [
     USAJobsConnector(),
     WpZleceniaConnector(),
     FreelancehuntConnector(),
+    FreelancerConnector(),
     # supply side — contractor / specialist profiles
     GitHubConnector(),
     StackOverflowConnector(),
