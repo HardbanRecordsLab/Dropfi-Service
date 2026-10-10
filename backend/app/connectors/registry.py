@@ -17,6 +17,7 @@ from .stackoverflow import StackOverflowConnector
 from .usajobs import USAJobsConnector
 from .useme import UsemeConnector
 from .weworkremotely import WeWorkRemotelyConnector
+from .wpzlecenia import WpZleceniaConnector
 
 ALL_CONNECTORS: list[Connector] = [
     # demand side — job / gig leads
@@ -30,6 +31,7 @@ ALL_CONNECTORS: list[Connector] = [
     JustJoinItConnector(),
     AdzunaConnector(),
     USAJobsConnector(),
+    WpZleceniaConnector(),
     # supply side — contractor / specialist profiles
     GitHubConnector(),
     StackOverflowConnector(),
