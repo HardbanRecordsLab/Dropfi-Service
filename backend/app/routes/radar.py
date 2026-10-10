@@ -17,6 +17,8 @@ from app.database import get_db
 from app.deps import get_current_user, require_role
 from app.models import ExternalListing, ExternalTalent, RadarScanLog, User
 from app.schemas import ExternalListingOut, ExternalTalentOut, RadarSourceOut
+from app.utils.agency_profile import load_agency_profile
+from app.utils.ai import generate_offer
 from app.utils.jobs import create_job_and_match
 from app.utils.security import hash_password, make_referral_code
 
@@ -177,6 +179,39 @@ def import_listing(
     row.imported_job_id = job.id
     db.commit()
     return {"status": "imported", "job_id": job.id}
+
+
+@router.post("/listings/{listing_id}/offer", response_model=ExternalListingOut)
+def generate_listing_offer(
+    listing_id: str,
+    regenerate: bool = Query(False, description="regenerate even if an offer already exists"),
+    user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    row = db.get(ExternalListing, listing_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if row.offer_text and not regenerate:
+        return row
+
+    profile = load_agency_profile()
+    if profile.get("is_template"):
+        raise HTTPException(
+            status_code=409,
+            detail="Profil agencji (agency_profile.json) nie jest jeszcze uzupełniony — uzupełnij "
+                   "dane HRL Digital zanim wygenerujesz ofertę.",
+        )
+
+    result = generate_offer(row, profile)
+    row.offer_text = result["offer_text"]
+    row.offer_language = result["offer_language"]
+    row.offer_price_min = result["price_min"]
+    row.offer_price_max = result["price_max"]
+    row.offer_questions = result["questions"]
+    row.offer_generated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(row)
+    return row
 
 
 @router.post("/listings/{listing_id}/dismiss")
