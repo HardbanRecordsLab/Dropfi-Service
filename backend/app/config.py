@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None
     SMTP_PASSWORD: str | None = None
-    SENDER_EMAIL: str = "dropify@hardbanrecordslab.online"
+    SENDER_EMAIL: str = "no-reply@hardbanrecordslab.online"
 
     # Legal / Ownership
     PLATFORM_OWNER: str = "HardbanRecords Lab"
