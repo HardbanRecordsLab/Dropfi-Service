@@ -67,6 +67,9 @@ def llm_text(
     # Callers already strip code fences + json.loads, and prompts ask for JSON only.
     if force_json and settings.LLM_JSON_MODE:
         kwargs["response_format"] = {"type": "json_object"}
+    # OpenRouter-only routing preference; other OpenAI-compatible providers don't know it.
+    if settings.LLM_DATA_COLLECTION and "openrouter.ai" in settings.LLM_BASE_URL:
+        kwargs["extra_body"] = {"provider": {"data_collection": settings.LLM_DATA_COLLECTION}}
 
     client = _get_client()
     models = [settings.LLM_MODEL]

@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     # or meta-llama/llama-3.3-70b-instruct (both a few cents / million tokens).
     LLM_MODEL: str = "openrouter/free"
     LLM_MODEL_FALLBACK: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    # OpenRouter provider data policy. "deny" routes only to providers that do
+    # not store or train on prompts (prompts carry job-listing text and user
+    # data). Free ":free" models have no such endpoints, so with "deny" the
+    # fallback must be a paid model (VPS: meta-llama/llama-3.3-70b-instruct).
+    # Empty string = send nothing (provider default).
+    LLM_DATA_COLLECTION: str = "deny"
     LLM_JSON_MODE: bool = False   # send response_format=json_object (paid models only)
     LLM_MAX_TOKENS: int = 2500
     LLM_TIMEOUT: int = 40
