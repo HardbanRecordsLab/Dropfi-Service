@@ -30,7 +30,7 @@ export default function Footer() {
             {t("brand.tagline")}. © 2026 DROPIFY by HardbanRecords Lab. {t("footer.rights")}
           </p>
           <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
-            Wiercień, Polska · <a href="mailto:dropify@hardbanrecordslab.online" style={{ color: "var(--gold)" }}>dropify@hardbanrecordslab.online</a>
+            Kamil Skomra, HardbanRecords Lab · <a href="mailto:contact@hardbanrecordslab.online" style={{ color: "var(--gold)" }}>contact@hardbanrecordslab.online</a>
           </p>
         </div>
         <div>
