@@ -32,6 +32,9 @@ export default function Footer() {
           <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
             Kamil Skomra, HardbanRecords Lab · <a href="mailto:contact@hardbanrecordslab.online" style={{ color: "var(--gold)" }}>contact@hardbanrecordslab.online</a>
           </p>
+          <p style={{ fontSize: "0.78rem", marginTop: "0.5rem" }}>
+            <a href="https://hardbanrecordslab.online/" style={{ color: "var(--gold)" }}>← hardbanrecordslab.online</a>
+          </p>
         </div>
         <div>
           <h4 style={{ color: "var(--text-primary)", marginBottom: "1.2rem", fontSize: "0.85rem", textTransform: "uppercase" }}>

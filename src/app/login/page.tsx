@@ -38,6 +38,7 @@ export default function LoginPage() {
         <Link href="/" style={{ fontSize: "1.4rem", fontWeight: "800", display: "block", marginBottom: "2rem" }}>
           <span className="gold-gradient-text">DROPIFY</span>
         </Link>
+        <a href="https://hardbanrecordslab.online/" style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "-1.2rem", marginBottom: "1.6rem" }}>← hardbanrecordslab.online</a>
         <h1 style={{ fontSize: "1.8rem", marginBottom: "0.5rem" }}>{t("auth.login.title")}</h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "2rem" }}>{t("brand.tagline")}</p>
 

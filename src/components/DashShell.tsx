@@ -101,6 +101,9 @@ export default function DashShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <a href="https://hardbanrecordslab.online/" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+            ← hardbanrecordslab.online
+          </a>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
               <div style={{ fontSize: "0.85rem", fontWeight: "700" }}>
