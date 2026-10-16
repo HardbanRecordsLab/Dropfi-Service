@@ -123,6 +123,8 @@ class Settings(BaseSettings):
     RADAR_BOT_EMAIL: str = "radar@dropify.app"   # owns jobs imported from external leads
     RADAR_SCAN_INTERVAL_HOURS: int = 6
     RADAR_MAX_PER_SOURCE: int = 50
+    RADAR_MIN_OPEN_JOBS: int = 200          # keep at least this many open jobs (auto-import leads); 0 = off
+    RADAR_IMPORT_MAX_AGE_DAYS: int = 14     # only import leads this fresh; imported leads close after it
     RADAR_HTTP_TIMEOUT: int = 15
     # Connectors parked until their public endpoint is re-verified (comma-separated slugs).
     # useme: re-checked 2026-10-10 — https://useme.com/pl/rss/jobs/ now returns a

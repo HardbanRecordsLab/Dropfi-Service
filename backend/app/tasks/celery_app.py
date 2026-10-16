@@ -51,6 +51,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.reports.auto_complete_overdue",
         "schedule": crontab(hour=0, minute=30),
     },
+    "radar-keep-min-open-jobs": {
+        "task": "app.tasks.radar.keep_min_open_jobs",
+        "schedule": crontab(minute=30, hour=f"*/{max(1, settings.RADAR_SCAN_INTERVAL_HOURS)}"),
+    },
     "portal-radar-scan": {
         "task": "app.tasks.radar.scan_all_sources",
         "schedule": crontab(minute=0, hour=f"*/{max(1, settings.RADAR_SCAN_INTERVAL_HOURS)}"),

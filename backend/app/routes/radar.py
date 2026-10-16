@@ -19,8 +19,6 @@ from app.models import ExternalListing, ExternalTalent, RadarScanLog, User
 from app.schemas import ExternalListingOut, ExternalTalentOut, PipelineUpdate, RadarSourceOut
 from app.utils.agency_profile import load_agency_profile
 from app.utils.ai import generate_offer
-from app.utils.jobs import create_job_and_match
-from app.utils.security import hash_password, make_referral_code
 
 router = APIRouter(prefix="/radar", tags=["Portal Radar"])
 logger = logging.getLogger(__name__)
@@ -31,23 +29,8 @@ _PIPELINE_STATUSES = {"applied", "replied", "won", "lost"}
 
 def _radar_bot(db: Session) -> User:
     """The client account that owns jobs imported from external leads."""
-    bot = db.query(User).filter(User.email == settings.RADAR_BOT_EMAIL).first()
-    if bot is None:
-        import secrets
-        bot = User(
-            email=settings.RADAR_BOT_EMAIL,
-            password_hash=hash_password(secrets.token_urlsafe(24)),
-            role="client",
-            first_name="Portal",
-            last_name="Radar",
-            company="DROPIFY Portal Radar",
-            is_active=True,
-            referral_code=make_referral_code(settings.RADAR_BOT_EMAIL),
-        )
-        db.add(bot)
-        db.commit()
-        db.refresh(bot)
-    return bot
+    from app.utils.radar_import import radar_bot
+    return radar_bot(db)
 
 
 # ---------------------------------------------------------------------------
@@ -166,33 +149,22 @@ def import_listing(
     if row.status == "imported" and row.imported_job_id:
         raise HTTPException(status_code=409, detail="Already imported")
 
-    bot = _radar_bot(db)
-    budget = row.budget_max or row.budget_min or 500.0
-    description = (
-        f"{row.description}\n\n"
-        f"---\nŹródło / Source: {row.source} — {row.url}\n"
-        f"Firma / Company: {row.company or 'n/a'}\n"
-        f"Lokalizacja / Location: {row.location or 'n/a'}"
-        + (f"\nKontakt / Contact: {row.contact}" if row.contact else "")
-    )
-    job = create_job_and_match(
-        db,
-        title=row.title,
-        description=description,
-        budget=float(budget),
-        deadline=date.today() + timedelta(days=14),
-        location=row.location or ("Remote" if row.is_remote else ""),
-        category=row.category or "",
-        required_skills=[t for t in (row.tags or []) if isinstance(t, str)][:8],
-        client_id=bot.id,
-        source=f"radar:{row.source}",
-    )
-    job.external_source = row.source
-    job.external_url = row.url
-    row.status = "imported"
-    row.imported_job_id = job.id
-    db.commit()
+    from app.utils.radar_import import import_listing_row
+    job = import_listing_row(db, row, _radar_bot(db))
     return {"status": "imported", "job_id": job.id}
+
+
+@router.post("/top-up")
+def top_up(
+    target: int = Query(None, ge=1, le=2000, description="minimum open jobs (default RADAR_MIN_OPEN_JOBS)"),
+    max_age_days: int = Query(None, ge=1, le=90),
+    min_fit: float = Query(0, ge=0, le=100),
+    user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    """Admin: import fresh leads until at least `target` jobs are open on the board."""
+    from app.utils.radar_import import top_up_open_jobs
+    return top_up_open_jobs(db, target=target, max_age_days=max_age_days, min_fit=min_fit)
 
 
 @router.post("/listings/{listing_id}/offer", response_model=ExternalListingOut)

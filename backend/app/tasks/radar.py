@@ -235,3 +235,20 @@ def score_and_alert_new_listings() -> dict:
     finally:
         db.close()
     return {"scored": scored, "alerted": alerted, "offers_generated": offers_generated}
+
+
+@shared_task(name="app.tasks.radar.keep_min_open_jobs")
+def keep_min_open_jobs() -> dict:
+    """Close stale imported leads, then import fresh ones until RADAR_MIN_OPEN_JOBS are open."""
+    if not settings.RADAR_ENABLED or settings.RADAR_MIN_OPEN_JOBS <= 0:
+        return {"skipped": True}
+    from app.utils.radar_import import expire_stale_imports, top_up_open_jobs
+    db = SessionLocal()
+    try:
+        closed = expire_stale_imports(db)
+        result = top_up_open_jobs(db)
+        result["closed_stale"] = closed
+        logger.info("Radar top-up: %s", result)
+        return result
+    finally:
+        db.close()

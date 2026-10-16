@@ -103,6 +103,10 @@ def run_matching(db: Session, job_id: str) -> int:
         m.freelancer_id
         for m in db.query(Match).filter(Match.job_id == job.id, Match.status == "pending").all()
     }
+    # Leads imported from Portal Radar: in-app notification only (a bulk import must
+    # not e-mail every freelancer hundreds of times) and no Autopilot contract with
+    # the bot account that owns them.
+    is_lead = bool(job.external_source)
     created = 0
     for freelancer, score in scored[:TOP_N]:
         if freelancer.id in existing:
@@ -121,7 +125,7 @@ def run_matching(db: Session, job_id: str) -> int:
             f"AI matched you to: {job.title} (score {score:.0%}). Budget: {job.budget:.2f} PLN. Deadline: {job.deadline}."
             + (" Previous candidate declined — you are next in line." if fallback_run else ""),
             "priority" if fallback_run else "match",
-            freelancer.email,
+            None if is_lead else freelancer.email,
             f"New match: {job.title}",
         )
         notify_n8n("match-created", {
@@ -137,7 +141,7 @@ def run_matching(db: Session, job_id: str) -> int:
     db.commit()
 
     # Feature #13: AI Proposal Autopilot — auto-accept matches for configured freelancers
-    if created:
+    if created and not is_lead:
         auto_accepted = 0
         fresh = (
             db.query(Match)

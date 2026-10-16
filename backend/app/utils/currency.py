@@ -18,6 +18,11 @@ RATES_FROM_PLN = {
     "UAH": 10.4,
     "CZK": 5.7,
     "SEK": 2.6,
+    "INR": 23.0,
+    "AUD": 0.38,
+    "CAD": 0.35,
+    "SGD": 0.33,
+    "CHF": 0.22,
 }
 
 CURRENCY_SYMBOL = {

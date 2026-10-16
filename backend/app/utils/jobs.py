@@ -22,6 +22,8 @@ def create_job_and_match(
     required_skills: list | None = None,
     interview_questions: list | None = None,
     source: str = "web",
+    external_source: str | None = None,
+    external_url: str | None = None,
 ) -> Job:
     job = Job(
         title=title[:255],
@@ -33,6 +35,9 @@ def create_job_and_match(
         required_skills=required_skills or [],
         client_id=client_id,
         interview_questions=interview_questions,
+        # set before matching runs: imported leads are matched quietly (see tasks/matching.py)
+        external_source=external_source,
+        external_url=external_url,
     )
     db.add(job)
     db.commit()
