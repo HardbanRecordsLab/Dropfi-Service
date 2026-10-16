@@ -22,23 +22,23 @@ def create_rating(
     if not target:
         raise HTTPException(status_code=404, detail="Rated user not found")
 
-    if data.job_id:
-        contract = (
-            db.query(Contract)
-            .filter(Contract.job_id == data.job_id)
-            .first()
-        )
-        if not contract:
-            raise HTTPException(status_code=400, detail="No contract for this job")
-        if contract.client_id != user.id and contract.freelancer_id != user.id:
-            raise HTTPException(status_code=403, detail="You were not part of this job")
-        existing = (
-            db.query(Rating)
-            .filter(Rating.from_user_id == user.id, Rating.to_user_id == data.to_user_id, Rating.job_id == data.job_id)
-            .first()
-        )
-        if existing:
-            raise HTTPException(status_code=400, detail="You already rated this job")
+    # Ratings feed the fee tier (5% for top-rated), so they must come from real, finished work.
+    contract = (
+        db.query(Contract)
+        .filter(Contract.job_id == data.job_id, Contract.status == "completed",
+                ((Contract.client_id == user.id) & (Contract.freelancer_id == data.to_user_id))
+                | ((Contract.freelancer_id == user.id) & (Contract.client_id == data.to_user_id)))
+        .first()
+    )
+    if not contract:
+        raise HTTPException(status_code=403, detail="You can only rate the other party of a completed contract")
+    existing = (
+        db.query(Rating)
+        .filter(Rating.from_user_id == user.id, Rating.to_user_id == data.to_user_id, Rating.job_id == data.job_id)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="You already rated this job")
 
     rating = Rating(
         from_user_id=user.id,

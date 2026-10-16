@@ -87,6 +87,8 @@ class Settings(BaseSettings):
     ]
     CORS_ORIGINS_EXTRA: str = ""   # comma-separated extra origins (prod frontend domain)
 
+    RATE_LIMIT_ENABLED: bool = True
+
     PLATFORM_FEE_RATE: float = 0.08
     FEE_RATE_TOP: float = 0.05
     FEE_RATE_NEW: float = 0.12

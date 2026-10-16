@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
+
+from app.utils.ratelimit import hit, limit
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
@@ -20,7 +22,7 @@ PASSWORD_RESET_MINUTES = 30
 EMAIL_VERIFY_MINUTES = 24 * 60
 
 
-@router.post("/register", response_model=Token, status_code=201)
+@router.post("/register", response_model=Token, status_code=201, dependencies=[Depends(limit("register", 10, 3600))])
 def register(data: UserCreate, db: Session = Depends(get_db)):
     if not data.rodo_consent:
         raise HTTPException(status_code=400, detail="RODO consent is required")
@@ -87,8 +89,9 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
     return Token(access_token=token, user=UserOut.model_validate(user))
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, dependencies=[Depends(limit("login", 10, 60))])
 def login(data: UserLogin, db: Session = Depends(get_db)):
+    hit(f"login-account:{data.email.lower()}", 20, 900)
     user = db.query(User).filter(User.email == data.email.lower()).first()
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -103,7 +106,7 @@ def me(user: User = Depends(get_current_user)):
     return user
 
 
-@router.post("/forgot-password")
+@router.post("/forgot-password", dependencies=[Depends(limit("forgot", 5, 3600))])
 def forgot_password(email: str = Body(..., embed=True), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == email.lower()).first()
     if user:
@@ -120,7 +123,7 @@ def forgot_password(email: str = Body(..., embed=True), db: Session = Depends(ge
     return {"message": "If that email is registered, a reset link has been sent."}
 
 
-@router.post("/reset-password")
+@router.post("/reset-password", dependencies=[Depends(limit("reset", 10, 3600))])
 def reset_password(
     token: str = Body(..., embed=True),
     new_password: str = Body(..., min_length=8, embed=True),
@@ -135,7 +138,7 @@ def reset_password(
     return {"message": "Password updated — you can now sign in."}
 
 
-@router.post("/send-verification")
+@router.post("/send-verification", dependencies=[Depends(limit("verify-mail", 5, 3600))])
 def send_verification(user: User = Depends(get_current_user)):
     if user.email_verified:
         return {"message": "Already verified"}

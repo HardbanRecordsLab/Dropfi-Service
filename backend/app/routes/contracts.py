@@ -108,6 +108,7 @@ def submit_milestone(
         raise HTTPException(status_code=404, detail="Contract not found")
     if contract.freelancer_id != user.id:
         raise HTTPException(status_code=403, detail="Only the freelancer can submit milestones")
+    _require_active(contract)
     milestone = db.get(Milestone, milestone_id)
     if not milestone or milestone.contract_id != contract.id:
         raise HTTPException(status_code=404, detail="Milestone not found")
@@ -150,13 +151,18 @@ def release_milestone(
         raise HTTPException(status_code=404, detail="Contract not found")
     if contract.client_id != user.id:
         raise HTTPException(status_code=403, detail="Only the client can release payments")
-    milestone = db.get(Milestone, milestone_id)
+    _require_active(contract)
+    milestone = _lock_milestone(db, milestone_id)
     if not milestone or milestone.contract_id != contract.id:
         raise HTTPException(status_code=404, detail="Milestone not found")
     if milestone.status != "in_review":
         raise HTTPException(status_code=400, detail="Milestone must be in review to release")
 
-    _release(db, contract, milestone)
+    if _release(db, contract, milestone) is None:
+        raise HTTPException(
+            status_code=402,
+            detail="This milestone has not been paid yet — pay it via Stripe checkout; it is released automatically once payment settles.",
+        )
     return _contract_payload(db, contract, user)
 
 
@@ -190,6 +196,9 @@ def request_refund(
     refund_failures = 0
     payments = db.query(Payment).filter(Payment.contract_id == contract.id).all()
     for payment in payments:
+        if payment.status == "pending" and not payment.provider_ref:
+            payment.status = "cancelled"  # checkout never settled — nothing to give back
+            continue
         if payment.status in ("paid", "pending"):
             if refund_stripe_payment(payment):
                 payment.status = "refunded"
@@ -328,11 +337,20 @@ def resolve_dispute(
     - release_to_freelancer: release everything to the freelancer
     - refund_client: refund everything to the client
     - proportional: split by freelancer_pct (0-100) — release % to freelancer, refund rest to client
+
+    Money rules: a milestone the client already paid (real Stripe charge) is
+    never paid twice — the existing Payment is kept / partially refunded; an
+    unpaid milestone gets an ``admin_override`` Payment for the freelancer's
+    share (operator settles it outside Stripe).
     """
     if resolution not in ("release_to_freelancer", "refund_client", "proportional"):
         raise HTTPException(status_code=400, detail="resolution must be 'release_to_freelancer', 'refund_client', or 'proportional'")
     if resolution == "proportional" and not (0 <= freelancer_pct <= 100):
         raise HTTPException(status_code=400, detail="freelancer_pct must be between 0 and 100")
+    if resolution == "release_to_freelancer":
+        freelancer_pct = 100.0
+    elif resolution == "refund_client":
+        freelancer_pct = 0.0
 
     contract = db.get(Contract, contract_id)
     if not contract:
@@ -340,81 +358,122 @@ def resolve_dispute(
     if contract.status != "disputed":
         raise HTTPException(status_code=400, detail="Contract is not disputed")
 
+    from app.routes.payments import refund_stripe_payment
+
+    freelancer = db.get(User, contract.freelancer_id)
+    pct = freelancer_pct / 100.0
+    now = datetime.now(timezone.utc)
+    refund_failures = 0
     remaining = (
         db.query(Milestone)
         .filter(Milestone.contract_id == contract.id, Milestone.status != "released")
         .order_by(Milestone.order_index)
         .all()
     )
+    for m in remaining:
+        freelancer_amount = round(m.amount * pct, 2)
+        client_refund_amount = round(m.amount - freelancer_amount, 2)
+        existing = _client_payment(db, m)
 
-    if resolution == "release_to_freelancer":
-        freelancer = db.get(User, contract.freelancer_id)
-        for m in remaining:
-            fee = round(m.amount * (contract.fee_rate or 0.08), 2)
+        if existing and existing.status == "pending" and not existing.provider_ref:
+            existing.status = "cancelled"  # open checkout never settled
+            existing = None
+
+        if existing:  # client really paid this milestone
+            if client_refund_amount > 0:
+                if refund_stripe_payment(existing, amount=client_refund_amount):
+                    if freelancer_amount > 0:
+                        _set_payment_amount(existing, freelancer_amount, contract)
+                    else:
+                        existing.status = "refunded"
+                else:
+                    refund_failures += 1
+        elif freelancer_amount > 0:
+            fee = round(freelancer_amount * (contract.fee_rate or 0.08), 2)
             db.add(Payment(
-                contract_id=contract.id, milestone_id=m.id, amount=round(m.amount, 2),
-                platform_fee=fee, net_amount=round(m.amount - fee, 2), status="paid",
+                contract_id=contract.id, milestone_id=m.id, amount=freelancer_amount,
+                platform_fee=fee, net_amount=round(freelancer_amount - fee, 2), status="paid",
                 provider="admin_override",
                 payout_method=freelancer.payout_method if freelancer else "bank",
                 payout_address=freelancer.payout_address if freelancer else None,
             ))
-            db.commit()
-            finalize_milestone_release(db, contract, m)  # sets contract.status="completed" on the last one
-    elif resolution == "proportional":
-        from app.routes.payments import refund_stripe_payment
-        freelancer = db.get(User, contract.freelancer_id)
-        pct = freelancer_pct / 100.0
-        for m in remaining:
-            freelancer_amount = round(m.amount * pct, 2)
-            client_refund_amount = round(m.amount - freelancer_amount, 2)
-            # Release portion to freelancer
-            if freelancer_amount > 0:
-                fee = round(freelancer_amount * (contract.fee_rate or 0.08), 2)
-                db.add(Payment(
-                    contract_id=contract.id, milestone_id=m.id, amount=freelancer_amount,
-                    platform_fee=fee, net_amount=round(freelancer_amount - fee, 2), status="paid",
-                    provider="admin_override",
-                    payout_method=freelancer.payout_method if freelancer else "bank",
-                    payout_address=freelancer.payout_address if freelancer else None,
-                ))
-                db.commit()
-                m.status = "released"
-                m.released_at = datetime.now(timezone.utc)
-            # Refund portion to client
-            if client_refund_amount > 0:
-                payment = db.query(Payment).filter(Payment.milestone_id == m.id).first()
-                if payment and payment.status in ("paid", "pending"):
-                    if refund_stripe_payment(payment):
-                        payment.status = "refunded"
-            if freelancer_amount <= 0:
-                m.status = "rejected"
-        contract.status = "completed"
-    else:
-        from app.routes.payments import refund_stripe_payment
-        for m in remaining:
-            payment = db.query(Payment).filter(Payment.milestone_id == m.id).first()
-            if payment and payment.status in ("paid", "pending"):
-                if refund_stripe_payment(payment):
-                    payment.status = "refunded"
-            m.status = "rejected"
-        contract.status = "cancelled"
-        job = db.get(Job, contract.job_id)
-        if job:
-            job.status = "open"
 
-    contract.dispute_resolution = resolution
-    contract.resolved_at = datetime.now(timezone.utc)
-    db.commit()
+        if freelancer_amount > 0:
+            m.status = "released"
+            m.released_at = now
+        else:
+            m.status = "rejected"
 
     job = db.get(Job, contract.job_id)
+    if pct > 0:
+        contract.status = "completed"
+        contract.completed_at = now
+        if job:
+            job.status = "completed"
+        _count_completion(db, contract)
+    else:
+        contract.status = "cancelled"
+        if job:
+            job.status = "open"
+    contract.dispute_resolution = resolution
+    contract.resolved_at = now
+    db.commit()
+
     for party_id in (contract.client_id, contract.freelancer_id):
         create_notification(
             db, party_id, "Dispute resolved",
-            f"The dispute on '{job.title if job else contract.job_id}' was resolved: {resolution.replace('_', ' ')}.",
+            f"The dispute on '{job.title if job else contract.job_id}' was resolved: {resolution.replace('_', ' ')}"
+            + (f" ({freelancer_pct:.0f}% to freelancer)." if resolution == "proportional" else "."),
             "dispute",
         )
-    notify_n8n("dispute-resolved", {"contract_id": contract.id, "resolution": resolution})
+    if refund_failures:
+        for a in db.query(User).filter(User.role == "admin").all():
+            create_notification(db, a.id, "⚠️ Stripe refund failed",
+                                f"{refund_failures} refund(s) on contract {contract.id} need manual processing.", "dispute")
+    notify_n8n("dispute-resolved", {"contract_id": contract.id, "resolution": resolution,
+                                    "freelancer_pct": freelancer_pct, "refund_failures": refund_failures})
     return _contract_payload(db, contract, admin)
+
+
+def _require_active(contract: Contract) -> None:
+    if contract.status != "in_progress":
+        raise HTTPException(status_code=409, detail=f"Contract is {contract.status} — no milestone changes allowed")
+
+
+def _lock_milestone(db: Session, milestone_id: str) -> Milestone | None:
+    """SELECT ... FOR UPDATE so two concurrent releases can't both pass the status
+    check (ignored by SQLite, which serialises writers anyway)."""
+    return db.query(Milestone).filter(Milestone.id == milestone_id).with_for_update().first()
+
+
+def _client_payment(db: Session, milestone: Milestone) -> Payment | None:
+    """The client's real/demo payment for a milestone (not an admin override)."""
+    return (
+        db.query(Payment)
+        .filter(Payment.milestone_id == milestone.id, Payment.status.in_(["paid", "pending"]),
+                Payment.provider != "admin_override")
+        .order_by(Payment.created_at.desc())
+        .first()
+    )
+
+
+def _set_payment_amount(payment: Payment, amount: float, contract: Contract) -> None:
+    fee = round(amount * (contract.fee_rate or 0.08), 2)
+    payment.amount = round(amount, 2)
+    payment.platform_fee = fee
+    payment.net_amount = round(amount - fee, 2)
+
+
+def _count_completion(db: Session, contract: Contract) -> None:
+    """Bump completed-job stats for both parties (feeds risk score, badges, fee tier).
+    Callers only invoke this on the single transition into 'completed'."""
+    freelancer = db.get(User, contract.freelancer_id)
+    client = db.get(User, contract.client_id)
+    if freelancer:
+        freelancer.total_jobs = (freelancer.total_jobs or 0) + 1
+        freelancer.completed_jobs = (freelancer.completed_jobs or 0) + 1
+    if client:
+        client.total_jobs = (client.total_jobs or 0) + 1
 
 
 def _previous_released(db: Session, milestone: Milestone) -> bool:
@@ -441,11 +500,12 @@ def finalize_milestone_release(db: Session, contract: Contract, milestone: Miles
     """Shared completion logic: mark milestone released, auto-complete the contract
     when every milestone is released, notify both parties, fire the n8n event.
 
-    Called from two paths: (1) the instant demo-release button below, and
-    (2) the real Stripe webhook once a checkout payment actually settles
-    (see routes/payments.py + routes/webhooks.py) — money now genuinely moves
-    when Stripe is configured, closing the platform's biggest functional gap.
+    Called from the demo-release path and from the Stripe webhook once a checkout
+    actually settles. Idempotent: an already-released milestone is a no-op, and a
+    contract that is no longer in progress is never flipped to completed.
     """
+    if milestone.status == "released":
+        return
     milestone.status = "released"
     milestone.released_at = datetime.now(timezone.utc)
     db.commit()
@@ -455,12 +515,14 @@ def finalize_milestone_release(db: Session, contract: Contract, milestone: Miles
         .filter(Milestone.contract_id == contract.id, Milestone.status != "released")
         .count()
     )
-    if remaining == 0:
+    completed = remaining == 0 and contract.status == "in_progress"
+    if completed:
         contract.status = "completed"
         contract.completed_at = datetime.now(timezone.utc)
         job = db.get(Job, contract.job_id)
         if job:
             job.status = "completed"
+        _count_completion(db, contract)
         create_notification(
             db,
             contract.client_id,
@@ -482,15 +544,33 @@ def finalize_milestone_release(db: Session, contract: Contract, milestone: Miles
         "milestone_id": milestone.id,
         "amount": milestone.amount,
         "autopilot": autopilot,
-        "contract_completed": remaining == 0,
+        "contract_completed": completed,
     })
 
 
-def _release(db: Session, contract: Contract, milestone: Milestone, autopilot: bool = False) -> Payment:
-    """Instant/demo release path used when Stripe isn't configured — keeps the
-    platform 'self-working' out of the box (same fallback philosophy as the AI
-    utilities). When STRIPE_SECRET_KEY is set, real payment collection goes
-    through POST /api/payments/checkout/{contract_id}/{milestone_id} instead."""
+def _release(db: Session, contract: Contract, milestone: Milestone, autopilot: bool = False) -> Payment | None:
+    """Release a milestone that is in review.
+
+    - Stripe configured: money must already have been collected via checkout
+      (normally the webhook finalizes on its own). Releases only against an
+      existing *paid* Payment and returns None when the milestone is unpaid, so
+      neither the Release button nor the 48h auto-release can mark unpaid work
+      as paid.
+    - No Stripe (demo / self-working mode): writes a demo Payment, as before.
+
+    Never creates a second Payment when one already exists for the milestone.
+    """
+    from app.config import settings
+
+    existing = _client_payment(db, milestone)
+    if milestone.status == "released":
+        return existing
+    if existing and existing.status == "paid":
+        finalize_milestone_release(db, contract, milestone, autopilot=autopilot)
+        return existing
+    if settings.STRIPE_SECRET_KEY or existing:
+        return None  # unpaid, or a Stripe checkout is still open
+
     freelancer = db.get(User, contract.freelancer_id)
     fee = round(milestone.amount * (contract.fee_rate or 0.08), 2)
     payment = Payment(

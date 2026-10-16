@@ -1,3 +1,4 @@
+import hmac
 """Inbound integration: n8n workflows can act on DROPIFY via a signed API key.
 
 Supported actions (payload {"action": ...}):
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/n8n", tags=["n8n"])
 
 
 def require_n8n_key(api_key: str | None = Header(default=None, alias="X-Dropify-Api-Key")):
-    if not settings.N8N_INBOUND_KEY or api_key != settings.N8N_INBOUND_KEY:
+    if not settings.N8N_INBOUND_KEY or not hmac.compare_digest(api_key or "", settings.N8N_INBOUND_KEY):
         raise HTTPException(status_code=403, detail="Invalid n8n API key")
 
 

@@ -66,15 +66,31 @@ def test_shopify_webhook_unknown_connection_rejected(client):
     assert resp.status_code == 404
 
 
-def test_shopify_push_listing_reports_upstream_failure_gracefully(client):
-    """No mocking here on purpose: pushing to a fake, unreachable shop domain
-    must fail as a clean 502, not crash the request."""
+def test_shopify_connect_rejects_non_shopify_domain_and_missing_secret(client):
+    """SSRF guard: the stored domain is later used for authenticated requests."""
+    token = register(client, "client")["access_token"]
+    for domain, secret in (("169.254.169.254", "whsec_test_123"), ("internal-svc:8080", "whsec_test_123"),
+                           ("ok-shop.myshopify.com", "")):
+        resp = client.post("/api/integrations/shopify/connect", headers=auth_headers(token), json={
+            "shop_domain": domain, "access_token": "shpat_fake", "webhook_secret": secret,
+        })
+        assert resp.status_code == 422, (domain, resp.text)
+
+
+def test_shopify_push_listing_reports_upstream_failure_gracefully(client, monkeypatch):
+    """An upstream Shopify failure must surface as a clean 502, not crash the request."""
+    import app.routes.integrations as integrations_module
+
+    def _boom(*args, **kwargs):
+        raise integrations_module.httpx.ConnectError("unreachable")
+
+    monkeypatch.setattr(integrations_module.httpx, "put", _boom)
     data = register(client, "client")
     token = data["access_token"]
     conn = client.post("/api/integrations/shopify/connect", headers=auth_headers(token), json={
-        "shop_domain": "this-shop-does-not-exist-dropify-test.invalid",
+        "shop_domain": "this-shop-does-not-exist-dropify-test.myshopify.com",
         "access_token": "shpat_fake",
-        "webhook_secret": "",
+        "webhook_secret": "whsec_test_123",
     }).json()
     listing = client.post("/api/factory/listing", headers=auth_headers(token), json={
         "product_name": "Test Product", "language": "en",

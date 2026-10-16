@@ -26,6 +26,7 @@ os.environ["N8N_WEBHOOK_URL"] = ""
 os.environ["N8N_WEBHOOK_SECRET"] = ""
 os.environ["ADMIN_EMAIL"] = "admin@dropify.app"
 os.environ["ADMIN_PASSWORD"] = "admin-test-123"
+os.environ["RATE_LIMIT_ENABLED"] = "False"  # one shared test IP registers hundreds of users
 os.environ["CELERY_TASK_ALWAYS_EAGER"] = "1"  # run Celery tasks in-process, no broker
 
 import pytest  # noqa: E402

@@ -24,6 +24,18 @@ def get_current_user(
     return user
 
 
+def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Like get_current_user, but anonymous callers get None instead of 401."""
+    if not credentials:
+        return None
+    user_id = decode_token(credentials.credentials)
+    user = db.get(User, user_id) if user_id else None
+    return user if user and user.is_active else None
+
+
 def require_role(*roles: str):
     def checker(user: User = Depends(get_current_user)) -> User:
         if user.role not in roles:

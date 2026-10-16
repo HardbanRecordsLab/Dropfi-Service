@@ -40,8 +40,18 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     event_type = event.get("type", "")
     obj = event.get("data", {}).get("object", {})
 
-    if event_type in ("checkout.session.completed", "payment_intent.succeeded"):
+    paid_events = ("checkout.session.completed", "checkout.session.async_payment_succeeded",
+                   "payment_intent.succeeded")
+    if event_type in paid_events:
+        # A completed Checkout with a delayed method (e.g. bank transfer) is not paid yet —
+        # Stripe follows up with async_payment_succeeded.
+        if event_type == "checkout.session.completed" and obj.get("payment_status") not in (None, "paid", "no_payment_required"):
+            return {"received": True, "status": "awaiting_async_payment"}
         metadata = obj.get("metadata", {})
+        if metadata.get("kind") == "plan":
+            from app.routes.plans import activate_plan
+            activate_plan(db, metadata.get("user_id", ""), metadata.get("plan", ""), obj.get("id", ""))
+            return {"received": True}
         contract_id = metadata.get("contract_id")
         payment_id = metadata.get("payment_id")
         milestone_id = metadata.get("milestone_id")
@@ -51,6 +61,16 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         payment_intent_ref = obj.get("payment_intent") or obj.get("id", "")
 
         payment = db.get(Payment, payment_id) if payment_id else None
+        if payment and payment.status in ("cancelled", "refunded"):
+            # Paid an abandoned checkout after the contract was refunded/resolved — give it back.
+            payment.provider_ref = payment_intent_ref
+            from app.routes.payments import refund_stripe_payment
+            if refund_stripe_payment(payment):
+                payment.status = "refunded"
+            else:
+                logger.error("Late payment %s on closed checkout could not be auto-refunded", payment.id)
+            db.commit()
+            return {"received": True, "status": "late_payment_refunded"}
         if payment and payment.status != "paid":
             payment.status = "paid"
             payment.provider_ref = payment_intent_ref
@@ -58,9 +78,12 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
             contract = db.get(Contract, payment.contract_id)
             milestone = db.get(Milestone, milestone_id or payment.milestone_id)
-            if contract and milestone and milestone.status != "released":
+            if contract and milestone and milestone.status == "in_review" and contract.status == "in_progress":
                 from app.routes.contracts import finalize_milestone_release
                 finalize_milestone_release(db, contract, milestone)
+            elif contract and contract.status != "in_progress":
+                # Disputed/cancelled meanwhile: keep the money in escrow for the admin to resolve.
+                logger.warning("Payment %s settled on %s contract %s — held for admin", payment.id, contract.status, contract.id)
             return {"received": True}
 
         if contract_id and not payment_id:

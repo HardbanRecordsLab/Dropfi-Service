@@ -17,14 +17,26 @@ export default function ContractsPage() {
   const [disputeOpen, setDisputeOpen] = useState<Record<string, boolean>>({});
   const [disputeReason, setDisputeReason] = useState<Record<string, string>>({});
   const [disputeBusy, setDisputeBusy] = useState(false);
+  const [stripeEnabled, setStripeEnabled] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     let active = true;
     (async () => {
-      const data = (await API.myContracts().catch(() => [])) as Contract[];
-      if (active) setContracts(data);
-      setLoading(false);
+      try {
+        const [data, cfg] = await Promise.all([
+          API.myContracts() as Promise<Contract[]>,
+          (API.paymentsConfig() as Promise<{ stripe_enabled: boolean }>).catch(() => ({ stripe_enabled: false })),
+        ]);
+        if (active) {
+          setContracts(data);
+          setStripeEnabled(cfg.stripe_enabled);
+        }
+      } catch (err) {
+        if (active) setMsg(getErrorMessage(err));
+      } finally {
+        if (active) setLoading(false);
+      }
     })();
     return () => {
       active = false;
@@ -32,7 +44,11 @@ export default function ContractsPage() {
   }, [user]);
 
   const reload = async () => {
-    setContracts((await API.myContracts()) as Contract[]);
+    try {
+      setContracts((await API.myContracts()) as Contract[]);
+    } catch (err) {
+      setMsg(getErrorMessage(err));
+    }
   };
 
   const act = async (fn: () => Promise<unknown>, okMsg: string) => {
@@ -239,12 +255,16 @@ export default function ContractsPage() {
                             )}
                             {user?.role === "client" && m.status === "in_review" && (
                               <>
-                                <Btn onClick={() => pay(c.id, m.id)}>
-                                  💳 {t("pay.stripe")}
-                                </Btn>
-                                <Btn variant="outline" onClick={() => act(() => API.releaseMilestone(c.id, m.id), "Payment released")}>
-                                  {t("ms.release")}
-                                </Btn>
+                                {/* Stripe on: paying releases the milestone (webhook). Demo: instant release. */}
+                                {stripeEnabled ? (
+                                  <Btn onClick={() => pay(c.id, m.id)}>
+                                    💳 {t("pay.stripe")}
+                                  </Btn>
+                                ) : (
+                                  <Btn variant="outline" onClick={() => act(() => API.releaseMilestone(c.id, m.id), "Payment released")}>
+                                    {t("ms.release")}
+                                  </Btn>
+                                )}
                               </>
                             )}
                           </div>

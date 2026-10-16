@@ -21,7 +21,7 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 logger = logging.getLogger(__name__)
 
 
-def refund_stripe_payment(payment: Payment) -> bool:
+def refund_stripe_payment(payment: Payment, amount: float | None = None) -> bool:
     """Best-effort real refund via Stripe (feature #7 Deposit Refund Guarantee).
 
     Returns True when the payment is actually refunded, or when there was
@@ -29,7 +29,8 @@ def refund_stripe_payment(payment: Payment) -> bool:
     provider_ref is only set once the webhook confirms settlement). Returns
     False when a real Stripe charge exists but the refund call itself fails,
     so the caller can avoid marking it 'refunded' in the DB when no money
-    actually moved back.
+    actually moved back. ``amount`` (PLN) refunds only part of the charge —
+    used by proportional dispute resolution.
     """
     if payment.provider != "stripe" or not payment.provider_ref:
         return True
@@ -39,7 +40,10 @@ def refund_stripe_payment(payment: Payment) -> bool:
     try:
         import stripe
         stripe.api_key = settings.STRIPE_SECRET_KEY
-        stripe.Refund.create(payment_intent=payment.provider_ref)
+        kwargs = {"payment_intent": payment.provider_ref}
+        if amount is not None and amount < payment.amount:
+            kwargs["amount"] = int(round(amount * 100))
+        stripe.Refund.create(**kwargs)
         return True
     except Exception as exc:
         logger.error("Stripe refund failed for payment %s (%s)", payment.id, exc)
@@ -66,6 +70,8 @@ def create_checkout(
         raise HTTPException(status_code=404, detail="Contract not found")
     if contract.client_id != user.id:
         raise HTTPException(status_code=403, detail="Only the client can pay")
+    if contract.status != "in_progress":
+        raise HTTPException(status_code=409, detail=f"Contract is {contract.status} — payments are closed")
     milestone = db.get(Milestone, milestone_id)
     if not milestone or milestone.contract_id != contract.id:
         raise HTTPException(status_code=404, detail="Milestone not found")

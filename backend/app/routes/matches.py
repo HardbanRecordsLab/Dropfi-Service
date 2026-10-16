@@ -89,7 +89,7 @@ def list_job_matches(
     job = db.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    if user.role != "client" and job.client_id != user.id and user.role != "admin":
+    if job.client_id != user.id and user.role != "admin":
         raise HTTPException(status_code=403, detail="Only the client can view these matches")
     matches = db.query(Match).filter(Match.job_id == job_id).order_by(Match.score.desc()).all()
     return [_match_payload(db, m) for m in matches]

@@ -5,8 +5,8 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import get_current_user, require_role
-from app.models import User, Job, Match, Contract
+from app.deps import get_current_user, get_optional_user, require_role
+from app.models import User, Job, Match, Contract, Milestone
 from app.schemas import JobCreate, JobUpdate, JobOut, JobListItem
 from app.utils.ai import (
     analyze_job, embed_text, job_search_text,
@@ -120,7 +120,7 @@ def submit_deliverables(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    contract = db.query(Contract).filter(Contract.job_id == job.id).first()
+    contract = _active_contract(db, job.id)
     if not contract:
         raise HTTPException(status_code=400, detail="No contract for this job")
     if user.role == "freelancer" and contract.freelancer_id != user.id:
@@ -170,11 +170,30 @@ def job_fair_price(
 
 
 @router.get("/{job_id}", response_model=JobOut)
-def get_job(job_id: str, db: Session = Depends(get_db)):
+def get_job(job_id: str, user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
     job = db.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    return job
+    out = JobOut.model_validate(job)
+    participant = user is not None and (
+        user.role == "admin" or user.id == job.client_id
+        or db.query(Contract).filter(Contract.job_id == job.id, Contract.freelancer_id == user.id).first() is not None
+    )
+    if not participant:  # delivered work is private to the parties
+        out.deliverables = None
+        out.deliverable_url = None
+        out.deliverable_report = None
+    return out
+
+
+def _active_contract(db: Session, job_id: str) -> Contract | None:
+    """The live contract of a job (a refund reopens the job, so older cancelled ones may exist)."""
+    return (
+        db.query(Contract)
+        .filter(Contract.job_id == job_id)
+        .order_by((Contract.status.in_(["in_progress", "disputed"])).desc(), Contract.created_at.desc())
+        .first()
+    )
 
 
 @router.put("/{job_id}", response_model=JobOut)
@@ -189,6 +208,9 @@ def update_job(
         raise HTTPException(status_code=404, detail="Job not found")
     if job.client_id != user.id:
         raise HTTPException(status_code=403, detail="Not your job")
+    live = db.query(Contract).filter(Contract.job_id == job.id, Contract.status.in_(["in_progress", "disputed"])).first()
+    if live:
+        raise HTTPException(status_code=409, detail="This job has an active contract — it can no longer be edited")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(job, field, value)
     db.commit()
@@ -207,6 +229,13 @@ def delete_job(
         raise HTTPException(status_code=404, detail="Job not found")
     if job.client_id != user.id:
         raise HTTPException(status_code=403, detail="Not your job")
+    if db.query(Contract).filter(Contract.job_id == job.id).first():
+        # Contracts carry payments/invoices — keep the audit trail, just close the job.
+        raise HTTPException(status_code=409, detail="Jobs with a contract cannot be deleted — cancel it instead")
+    from app.models import Message
+    match_ids = [m.id for m in db.query(Match.id).filter(Match.job_id == job.id).all()]
+    if match_ids:
+        db.query(Message).filter(Message.match_id.in_(match_ids)).delete(synchronize_session=False)
     db.delete(job)
     db.commit()
     return {"message": "Job deleted"}
@@ -218,53 +247,43 @@ def complete_job(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Client: closes the job. With a contract this only works once every milestone
+    is released (escrow drives completion — see contracts.finalize_milestone_release).
+    Freelancer: signals 'work done' to the client; it does not close anything, so a
+    no-show can't block the refund guarantee or a dispute."""
     job = db.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    contract = db.query(Contract).filter(Contract.job_id == job.id).first()
+    contract = _active_contract(db, job.id)
 
     if user.role == "client":
         if job.client_id != user.id:
             raise HTTPException(status_code=403, detail="Not your job")
-        job.status = "completed"
-        if contract:
+        if job.status == "completed":
+            raise HTTPException(status_code=400, detail="Job already completed")
+        if contract and contract.status == "in_progress":
+            unreleased = (db.query(Milestone)
+                          .filter(Milestone.contract_id == contract.id, Milestone.status != "released").count())
+            if unreleased:
+                raise HTTPException(status_code=400, detail="Release the remaining milestones first — the contract completes automatically")
+            from app.routes.contracts import _count_completion
             contract.status = "completed"
             contract.completed_at = datetime.now(timezone.utc)
-            freelancer = db.get(User, contract.freelancer_id)
-            if freelancer:
-                freelancer.total_jobs += 1
-                freelancer.completed_jobs += 1
-            client = db.get(User, job.client_id)
-            if client:
-                client.total_jobs += 1
-            create_notification(
-                db,
-                contract.freelancer_id,
-                "Job completed",
-                f"Congratulations! The job '{job.title}' is completed. Payment of {contract.amount:.2f} PLN is being processed.",
-                "success",
-            )
+            _count_completion(db, contract)
+        elif contract and contract.status == "disputed":
+            raise HTTPException(status_code=409, detail="This contract is disputed — wait for the resolution")
+        job.status = "completed"
     elif user.role == "freelancer":
         if not contract or contract.freelancer_id != user.id:
             raise HTTPException(status_code=403, detail="No active contract for this job")
         if contract.status != "in_progress":
             raise HTTPException(status_code=400, detail="Contract already closed")
-        contract.status = "completed"
-        contract.completed_at = datetime.now(timezone.utc)
-        job.status = "completed"
-        freelancer = db.get(User, contract.freelancer_id)
-        if freelancer:
-            freelancer.total_jobs += 1
-            freelancer.completed_jobs += 1
-        client = db.get(User, job.client_id)
-        if client:
-            client.total_jobs += 1
         create_notification(
             db,
             job.client_id,
-            "Job marked as completed",
-            f"The freelancer marked '{job.title}' as complete. Please verify and release payment.",
+            "Freelancer reports the job as done",
+            f"The freelancer marked '{job.title}' as finished. Review the work and release the remaining milestones.",
             "info",
         )
     else:
@@ -273,7 +292,7 @@ def complete_job(
     db.commit()
     db.refresh(job)
 
-    notify_n8n("job-completed", {
+    notify_n8n("job-completed" if user.role == "client" else "job-done-reported", {
         "job_id": job.id,
         "title": job.title,
         "completed_by": user.role,

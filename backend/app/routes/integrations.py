@@ -1,3 +1,4 @@
+import re
 """Sprint 4 e-commerce integrations (#9-#11, doku/PLAN_20_FUNKCJI_PONAD_KONKURENCJA.md).
 
 WooCommerce (#9) needs no code here: the plugin at integrations/woocommerce/
@@ -68,15 +69,22 @@ def connect_shopify(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    domain = shop_domain.strip().lower().replace("https://", "").replace("http://", "").rstrip("/")
+    if not _SHOP_DOMAIN_RE.fullmatch(domain):
+        raise HTTPException(status_code=422, detail="shop_domain must look like your-store.myshopify.com")
+    if len(webhook_secret.strip()) < 8:
+        raise HTTPException(status_code=422, detail="webhook_secret (Shopify app API secret) is required to verify webhooks")
     conn = StoreConnection(
-        user_id=user.id, platform="shopify",
-        label=shop_domain.strip().replace("https://", "").replace("http://", "").rstrip("/"),
-        access_token=access_token, webhook_secret=webhook_secret or None,
+        user_id=user.id, platform="shopify", label=domain,
+        access_token=access_token, webhook_secret=webhook_secret.strip(),
     )
     db.add(conn)
     db.commit()
     db.refresh(conn)
     return {"id": conn.id, "platform": "shopify", "label": conn.label}
+
+
+_SHOP_DOMAIN_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,60}\.myshopify\.com")
 
 
 def _verify_shopify_hmac(secret: str, body: bytes, hmac_header: str) -> bool:
@@ -94,10 +102,9 @@ async def shopify_webhook(connection_id: str, request: Request, db: Session = De
         raise HTTPException(status_code=404, detail="Unknown or inactive store connection")
 
     raw_body = await request.body()
-    if conn.webhook_secret:
-        hmac_header = request.headers.get("x-shopify-hmac-sha256", "")
-        if not _verify_shopify_hmac(conn.webhook_secret, raw_body, hmac_header):
-            raise HTTPException(status_code=401, detail="Invalid webhook signature")
+    hmac_header = request.headers.get("x-shopify-hmac-sha256", "")
+    if not conn.webhook_secret or not _verify_shopify_hmac(conn.webhook_secret, raw_body, hmac_header):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
     try:
         payload = await request.json()
@@ -138,6 +145,11 @@ def push_listing_to_shopify(
     listing = db.get(Listing, listing_id)
     if not listing or listing.user_id != user.id:
         raise HTTPException(status_code=404, detail="Listing not found")
+
+    if not product_id.isdigit():
+        raise HTTPException(status_code=422, detail="product_id must be the numeric Shopify product id")
+    if not _SHOP_DOMAIN_RE.fullmatch(conn.label or ""):
+        raise HTTPException(status_code=409, detail="Stored shop domain is invalid — reconnect the store")
 
     content = listing.content or {}
     try:

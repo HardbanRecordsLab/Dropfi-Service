@@ -53,12 +53,12 @@ class UserUpdate(BaseModel):
     country: Optional[str] = None
     languages: Optional[List[str]] = None
     skills: Optional[List[str]] = None
-    hourly_rate: Optional[float] = None
-    availability: Optional[str] = None
+    hourly_rate: Optional[float] = Field(None, ge=0, le=100_000)
+    availability: Optional[str] = Field(None, pattern="^(available|busy)$")
     # AI Proposal Autopilot (#13)
     auto_accept_enabled: Optional[bool] = None
-    auto_accept_min_budget: Optional[float] = None
-    auto_accept_min_score: Optional[float] = None
+    auto_accept_min_budget: Optional[float] = Field(None, ge=0)
+    auto_accept_min_score: Optional[float] = Field(None, ge=0, le=100)
     # Stablecoin payouts (#6)
     payout_method: Optional[str] = None
     payout_address: Optional[str] = None
@@ -70,6 +70,22 @@ class UserUpdate(BaseModel):
     work_history: Optional[List[dict]] = None
     linkedin_url: Optional[str] = None
     company_website: Optional[str] = None
+
+
+class PublicUserOut(ORMModel):
+    """What anyone may see about another account — no email, tax ID, payout
+    address, referral code or autopilot thresholds."""
+    id: str
+    role: str
+    first_name: str
+    last_name: str
+    company: str
+    location: str
+    country: str
+    rating: float
+    rating_count: int
+    total_jobs: int
+    created_at: datetime
 
 
 class UserOut(ORMModel):
@@ -141,22 +157,23 @@ class FreelancerOut(ORMModel):
 # ---------- Job ----------
 class JobCreate(BaseModel):
     title: str = Field(min_length=3, max_length=255)
-    description: str = Field(min_length=10)
-    category: str = ""
-    budget: float = Field(gt=0)
+    description: str = Field(min_length=10, max_length=20000)
+    category: str = Field("", max_length=100)
+    budget: float = Field(gt=0, le=10_000_000)
     deadline: date
-    location: str = ""
-    required_skills: List[str] = []
-    interview_questions: Optional[List[str]] = None
+    location: str = Field("", max_length=255)
+    required_skills: List[str] = Field(default_factory=list, max_length=30)
+    interview_questions: Optional[List[str]] = Field(None, max_length=10)
 
 
 class JobUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    budget: Optional[float] = None
+    title: Optional[str] = Field(None, min_length=3, max_length=255)
+    description: Optional[str] = Field(None, min_length=10, max_length=20000)
+    budget: Optional[float] = Field(None, gt=0, le=10_000_000)
     deadline: Optional[date] = None
-    location: Optional[str] = None
-    status: Optional[str] = None
+    location: Optional[str] = Field(None, max_length=255)
+    # Clients may only close/reopen an un-hired job; contract states are driven by escrow.
+    status: Optional[str] = Field(None, pattern="^(open|cancelled)$")
 
 
 class JobOut(ORMModel):
@@ -183,7 +200,7 @@ class JobOut(ORMModel):
     verification_summary: str = ""
     verification_status: str = "pending"
     created_at: datetime
-    client: Optional["UserOut"] = None
+    client: Optional[PublicUserOut] = None
 
 
 class JobListItem(ORMModel):
@@ -198,7 +215,7 @@ class JobListItem(ORMModel):
     required_skills: List[str] = []
     status: str
     created_at: datetime
-    client: Optional[UserOut] = None
+    client: Optional[PublicUserOut] = None
     match_count: int = 0
 
 
@@ -265,9 +282,9 @@ class ContractOut(ORMModel):
 # ---------- Rating ----------
 class RatingCreate(BaseModel):
     to_user_id: str
-    job_id: Optional[str] = None
+    job_id: str
     score: float = Field(ge=1, le=5)
-    comment: str = ""
+    comment: str = Field("", max_length=2000)
 
 
 class RatingOut(ORMModel):
@@ -278,7 +295,7 @@ class RatingOut(ORMModel):
     score: float
     comment: str
     created_at: datetime
-    from_user: Optional[UserOut] = None
+    from_user: Optional[PublicUserOut] = None
 
 
 # ---------- Analytics ----------

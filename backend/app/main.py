@@ -12,7 +12,7 @@ from app.database import init_db, SessionLocal
 from app.routes import (
     auth, users, jobs, matches, ratings, analytics, contracts,
     admin, plans, notifications, webhooks, referrals, n8n,
-    factory, payments, copilot, developer, fx, integrations, invoices, badges, radar,
+    factory, payments, copilot, developer, fx, integrations, invoices, badges, radar, messages, mcp,
 )
 
 logger = logging.getLogger(__name__)
@@ -160,6 +160,8 @@ app.include_router(integrations.router, prefix="/api")
 app.include_router(invoices.router, prefix="/api")
 app.include_router(badges.router, prefix="/api")
 app.include_router(radar.router, prefix="/api")
+app.include_router(messages.router, prefix="/api")
+app.include_router(mcp.router, prefix="/api")
 
 
 @app.get("/api/health")
@@ -194,13 +196,13 @@ def health(request: Request):
     is_admin = False
     if auth_header.startswith("Bearer "):
         try:
-            from app.utils.security import decode_access_token
+            from app.utils.security import decode_token
             token = auth_header.split(" ", 1)[1]
-            payload = decode_access_token(token)
+            user_id = decode_token(token)
             from app.database import SessionLocal as _SL
             _db = _SL()
             from app.models import User
-            _user = _db.query(User).filter(User.id == payload.get("sub")).first()
+            _user = _db.get(User, user_id) if user_id else None
             is_admin = _user is not None and _user.role == "admin"
             _db.close()
         except Exception:

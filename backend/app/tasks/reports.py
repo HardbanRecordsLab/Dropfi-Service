@@ -281,7 +281,8 @@ def auto_release_milestones():
             contract = db.get(Contract, milestone.contract_id)
             if not contract or contract.status != "in_progress":
                 continue
-            _release(db, contract, milestone, autopilot=True)
+            if _release(db, contract, milestone, autopilot=True) is None:
+                continue  # Stripe mode and the client hasn't paid — never auto-"pay" unpaid work
             freelancer = db.get(User, contract.freelancer_id)
             if freelancer:
                 create_notification(

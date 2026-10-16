@@ -1,12 +1,16 @@
+import logging
 from datetime import date, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import User, Subscription
 
 router = APIRouter(prefix="/plans", tags=["Plans"])
+logger = logging.getLogger(__name__)
 
 PLANS = {
     "free": {"price": 0, "jobs_per_month": 5, "features": ["5 jobs/month", "Basic AI matching"]},
@@ -34,6 +38,41 @@ def subscribe(
         db.commit()
         return {"plan": "free", "price": 0, "message": "Downgraded to free"}
 
+    if settings.STRIPE_SECRET_KEY:
+        # Paid plans are activated by the Stripe webhook once the payment settles.
+        try:
+            import stripe
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+            session = stripe.checkout.Session.create(
+                mode="payment",
+                customer_email=user.email,
+                line_items=[{
+                    "price_data": {
+                        "currency": "pln",
+                        "product_data": {"name": f"DROPIFY {plan.capitalize()} — 30 days"},
+                        "unit_amount": int(PLANS[plan]["price"] * 100),
+                    },
+                    "quantity": 1,
+                }],
+                metadata={"kind": "plan", "plan": plan, "user_id": user.id},
+                success_url=f"{settings.FRONTEND_URL}/profile?plan=1",
+                cancel_url=f"{settings.FRONTEND_URL}/profile?plan_cancelled=1",
+            )
+        except Exception as exc:
+            logger.warning("Stripe plan checkout failed (%s)", exc)
+            raise HTTPException(status_code=502, detail="Payment provider error — please try again shortly")
+        return {"plan": plan, "price": PLANS[plan]["price"], "mode": "stripe", "checkout_url": session.url}
+
+    # Demo mode (no Stripe key): activate instantly so the platform stays self-working.
+    activate_plan(db, user.id, plan)
+    return {"plan": plan, "price": PLANS[plan]["price"], "mode": "demo", "message": "Subscription updated"}
+
+
+def activate_plan(db: Session, user_id: str, plan: str, provider_ref: str = "") -> bool:
+    user = db.get(User, user_id)
+    if not user or plan not in PLANS or plan == "free":
+        logger.warning("activate_plan: bad user/plan (%s, %s) ref=%s", user_id, plan, provider_ref)
+        return False
     active = db.query(Subscription).filter(Subscription.user_id == user.id, Subscription.status == "active").first()
     if active:
         active.plan = plan
@@ -48,4 +87,4 @@ def subscribe(
         ))
     user.plan = plan
     db.commit()
-    return {"plan": plan, "price": PLANS[plan]["price"], "message": "Subscription updated"}
+    return True
