@@ -198,7 +198,7 @@ def _rule_based_analysis(title: str, description: str, budget: float) -> dict:
     }
 
 
-ANALYSIS_PROMPT = """You are an expert job classifier for a freelance / e-commerce matching marketplace. Analyze the job posting and return ONLY valid JSON (no markdown, no commentary) with exactly these keys:
+ANALYSIS_PROMPT = """You are an expert job classifier for a multi-industry freelance marketplace (any remote-friendly trade: tech, creative, finance, legal, admin, education, engineering, sales and more). Pick the category that describes the WORK itself — use "E-commerce" only when the job is about running or building an online store, not merely because the client sells online. Analyze the job posting and return ONLY valid JSON (no markdown, no commentary) with exactly these keys:
 
 {{
   "category": one of {categories},
