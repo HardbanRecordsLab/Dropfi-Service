@@ -366,6 +366,26 @@ class CopilotMessage(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class Message(Base):
+    """Client <-> freelancer chat. One thread per Match (covers both the
+    pre-hire conversation and the running contract)."""
+    __tablename__ = "messages"
+
+    id = Column(String(32), primary_key=True, default=gen_id)
+    match_id = Column(String(32), ForeignKey("matches.id"), nullable=False, index=True)
+    sender_id = Column(String(32), ForeignKey("users.id"), nullable=False, index=True)
+    body = Column(Text, nullable=False)
+    # Off-platform contact / payment attempts (fee-leak + scam protection)
+    flagged = Column(Boolean, default=False)
+    flag_reasons = Column(JSON, nullable=True)
+    # AI translation cache: {"pl": "...", "en": "..."}
+    translations = Column(JSON, nullable=True)
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    sender = relationship("User", foreign_keys=[sender_id])
+
+
 class Invoice(TimestampMixin, Base):
     """#5 Invoicing: platform fee invoices for B2B accounting."""
     __tablename__ = "invoices"

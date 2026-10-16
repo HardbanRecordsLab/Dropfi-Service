@@ -30,6 +30,7 @@ const DICT: Record<string, { pl: string; en: string }> = {
   "nav.dashboard": { pl: "Panel", en: "Dashboard" },
   "nav.logout": { pl: "Wyloguj", en: "Log out" },
   "nav.profile": { pl: "Profil", en: "Profile" },
+  "nav.messages": { pl: "Wiadomości", en: "Messages" },
   "nav.jobs": { pl: "Zlecenia", en: "Jobs" },
   "nav.matches": { pl: "Matchy", en: "Matches" },
   "nav.contracts": { pl: "Kontrakty", en: "Contracts" },

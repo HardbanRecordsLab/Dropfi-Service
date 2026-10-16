@@ -69,6 +69,8 @@ Platforma wysyła **podpisane eventy** na webhooki n8n (nowe zlecenie, match, ko
 | `POST /api/copilot/ask`, `GET /api/copilot/history/{job_id}` | AI Co-Pilot (in-job assistant) |
 | `GET /api/matches/{id}/schedule` | Time-zone overlap / async scheduling suggestion |
 | `POST/GET/DELETE /api/developer/keys`, `POST /api/v1/external/jobs` | White-label / reseller API |
+| `GET /api/messages/threads`, `GET/POST /api/messages/{match_id}`, `…/translate`, `…/summary`, `…/suggest-replies` | Client ↔ freelancer chat: contact details masked until a contract (fee-leak + scam guard), AI translation PL/EN, AI thread summary + reply suggestions |
+| `POST /api/mcp` | **MCP server** — hire from Claude / ChatGPT / Cursor: `search_freelancers`, `draft_job`, `post_job`, `get_job_matches`, `send_message`, `estimate_fees`. Auth: partner API key as `Authorization: Bearer dpk_…` |
 
 Interactive docs: `https://your-backend/docs` (Swagger).
 

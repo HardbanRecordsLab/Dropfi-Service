@@ -54,6 +54,18 @@ export async function api<T = unknown>(
 }
 
 export const API = {
+  // Messages (client <-> freelancer chat)
+  messageThreads: () => api("/messages/threads"),
+  unreadMessages: () => api<{ unread: number }>("/messages/unread-count"),
+  messageThread: (matchId: string, lang?: string) =>
+    api(`/messages/${matchId}${lang ? `?lang=${lang}` : ""}`),
+  sendMessage: (matchId: string, body: string) =>
+    api(`/messages/${matchId}`, { method: "POST", body: JSON.stringify({ body }) }),
+  translateThread: (matchId: string, lang: string) =>
+    api(`/messages/${matchId}/translate`, { method: "POST", body: JSON.stringify({ lang }) }),
+  threadSummary: (matchId: string, language: string) => api(`/messages/${matchId}/summary?language=${language}`),
+  suggestReplies: (matchId: string, language: string) =>
+    api<{ replies: string[] }>(`/messages/${matchId}/suggest-replies?language=${language}`),
   // Auth
   register: (data: Record<string, unknown>) =>
     api("/auth/register", { method: "POST", body: JSON.stringify(data), auth: false }),
