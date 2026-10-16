@@ -34,7 +34,8 @@ class AdzunaConnector(Connector):
                 "app_id": settings.ADZUNA_APP_ID,
                 "app_key": settings.ADZUNA_APP_KEY,
                 "results_per_page": per_country,
-                "what_or": "ecommerce shopify freelance developer designer copywriter",
+                # every industry; contract work suits a freelance marketplace best
+                "contract": 1,
                 "content-type": "application/json",
             })
             for job in (data or {}).get("results", []):

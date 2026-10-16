@@ -20,7 +20,14 @@ CATEGORIES = [
     # AI-QA engine, just recognized categories/skills, so they route correctly
     # instead of falling through to "Other".
     "Real Estate", "Audio & Podcast", "Publishing", "Events", "Music Production",
-    "Data & AI Services", "Other",
+    "Data & AI Services",
+    # Multi-industry verticals — DROPIFY serves every remote-friendly trade,
+    # not only e-commerce.
+    "Accounting & Finance", "Legal", "Admin & Virtual Assistant", "Customer Support",
+    "Engineering & Architecture", "Education & Tutoring", "HR & Recruitment",
+    "Sales & Lead Generation", "Health & Fitness", "Construction & Renovation",
+    "Logistics & Supply Chain",
+    "Other",
 ]
 
 CATEGORY_KEYWORDS = {
@@ -39,6 +46,17 @@ CATEGORY_KEYWORDS = {
     "Events": ["event planning", "wydarzenie", "konferencja", "wesele", "organizacja imprezy", "organizacja eventu"],
     "Music Production": ["music production", "produkcja muzyczna", "mixing", "mastering", "session musician", "muzyk sesyjny", "beat", "utwór muzyczny", "cover art"],
     "Data & AI Services": ["data labeling", "data annotation", "etykietowanie danych", "adnotacja danych", "training data", "dane treningowe"],
+    "Accounting & Finance": ["accounting", "bookkeeping", "księgow", "ksiegow", "faktur", "invoice", "tax return", "podatk", "vat", "payroll", "kadry i płace", "financial model", "budżet firmy", "quickbooks", "xero", "audyt finansowy", "cfo"],
+    "Legal": ["legal", "lawyer", "attorney", "prawnik", "prawn", "umowa", "contract drafting", "regulamin", "rodo", "gdpr", "trademark", "znak towarowy", "patent", "compliance", "kancelari"],
+    "Admin & Virtual Assistant": ["virtual assistant", "wirtualn", "asystent", "administrac", "data entry", "wprowadzanie danych", "calendar", "email management", "przepisywanie", "transcription", "transkrypc", "research assistant"],
+    "Customer Support": ["customer support", "customer service", "obsługa klienta", "obsluga klienta", "helpdesk", "call center", "live chat", "infolinia", "zendesk", "ticket"],
+    "Engineering & Architecture": ["autocad", "solidworks", "revit", "architekt", "architect", "inżynier", "inzynier", "engineering", "mechanical", "electrical", "konstrukc", "pcb", "projekt budowlany", "interior design", "wnętrz", "wnetrz", "3d model"],
+    "Education & Tutoring": ["tutor", "korepetycj", "teacher", "nauczyciel", "lesson", "lekcj", "course creation", "kurs online", "e-learning", "szkolenie", "training materials", "language lessons"],
+    "HR & Recruitment": ["recruit", "rekrut", "headhunt", "hr ", "human resources", "kadry", "onboarding", "employer branding", "sourcing kandydat"],
+    "Sales & Lead Generation": ["lead generation", "leadów", "leadow", "sales", "sprzedaż", "sprzedaz", "cold calling", "telemarketing", "crm", "b2b outreach", "appointment setting", "handlowiec"],
+    "Health & Fitness": ["fitness", "trener", "trainer", "diet", "nutrition", "żywien", "zywien", "health coach", "yoga", "joga", "physio", "fizjoterap", "medical writing", "psycholog"],
+    "Construction & Renovation": ["remont", "renovation", "budow", "construction", "kosztorys", "wykończen", "wykonczen", "hydraulik", "elektryk", "instalac", "dekarz", "glazur"],
+    "Logistics & Supply Chain": ["logistic", "logistyk", "supply chain", "łańcuch dostaw", "spedyc", "freight", "transport", "magazyn", "warehouse", "sourcing supplier", "import z chin", "fulfillment"],
 }
 
 SKILL_KEYWORDS = {

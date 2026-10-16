@@ -9,11 +9,11 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API } from "@/lib/api";
 import type { JobListItem } from "@/lib/types";
-import { CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, categoryLabel } from "@/lib/categories";
 
 export default function JobsPage() {
   const { user } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [jobs, setJobs] = useState<JobListItem[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -82,7 +82,7 @@ export default function JobsPage() {
         >
           <option value="">{t("jobs.allCategories")}</option>
           {[...CATEGORIES, "Other"].map((c) => (
-            <option key={c} value={c}>{c}</option>
+            <option key={c} value={c}>{categoryLabel(c, lang)}</option>
           ))}
         </select>
       </div>

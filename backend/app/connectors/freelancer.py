@@ -24,6 +24,16 @@ API = "https://www.freelancer.com/api/projects/0.1/projects/active"
 # they're tagged on too many unrelated postings, e.g. trading bots).
 JOB_IDS = [17, 69, 77, 120, 137, 335, 502, 759, 788, 1031, 2298, 2376, 2701, 2723]
 
+# Multi-industry pass for the marketplace board: one full-text query per trade,
+# so DROPIFY isn't only web/e-commerce work.
+INDUSTRY_QUERIES = [
+    "accounting", "bookkeeping", "legal", "translation", "copywriting", "data entry",
+    "virtual assistant", "customer support", "autocad", "architecture", "engineering",
+    "tutoring", "recruitment", "lead generation", "video editing", "photography",
+    "voice over", "logo design", "social media marketing", "excel", "research",
+    "interior design", "fitness", "music production", "logistics",
+]
+
 
 class FreelancerConnector(Connector):
     slug = "freelancer"
@@ -37,21 +47,33 @@ class FreelancerConnector(Connector):
     def is_enabled(self) -> bool:
         return bool(settings.FREELANCER_ACCESS_TOKEN)
 
-    def fetch_listings(self, limit: int) -> list[NormalizedListing]:
-        params = [
-            ("limit", limit),
-            ("full_description", "true"),
-            ("job_details", "true"),
-        ]
-        params += [("jobs[]", job_id) for job_id in JOB_IDS]
-
+    def _fetch(self, extra: list[tuple], limit: int) -> list[dict]:
+        params = [("limit", limit), ("full_description", "true"), ("job_details", "true")] + extra
         data = get_json(
             API,
             params=params,
             headers={"Authorization": f"Bearer {settings.FREELANCER_ACCESS_TOKEN}"},
         )
-        projects = ((data or {}).get("result") or {}).get("projects", [])
-        return [self._normalize(p) for p in projects[:limit]]
+        return ((data or {}).get("result") or {}).get("projects", [])
+
+    def fetch_listings(self, limit: int) -> list[NormalizedListing]:
+        # 1) agency-relevant jobs (HRL Digital sales agent), 2) every other trade.
+        # Half the budget for agency work, the rest spread across trades.
+        projects = self._fetch([("jobs[]", job_id) for job_id in JOB_IDS], max(1, limit // 2))
+        per_query = max(1, (limit - limit // 2) // len(INDUSTRY_QUERIES))
+        for q in INDUSTRY_QUERIES:
+            try:
+                projects += self._fetch([("query", q)], per_query)
+            except Exception:  # noqa: BLE001 — one failing query must not drop the rest
+                continue
+        seen, out = set(), []
+        for p in projects:
+            pid = p.get("id")
+            if pid in seen:
+                continue
+            seen.add(pid)
+            out.append(self._normalize(p))
+        return out[:limit]
 
     @staticmethod
     def _normalize(p: dict) -> NormalizedListing:

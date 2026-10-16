@@ -148,7 +148,7 @@ def _candidates(db: Session, max_age_days: int, min_fit: float):
         if source in disabled:
             continue
         sq = q.filter(~ExternalListing.source.in_(SOURCE_PRIORITY)) if source == "*" else q.filter(ExternalListing.source == source)
-        for row in sq.order_by(ExternalListing.fit_score.desc().nullslast(), ExternalListing.posted_at.desc().nullslast()).limit(2000).all():
+        for row in sq.order_by(ExternalListing.posted_at.desc().nullslast(), ExternalListing.fit_score.desc().nullslast()).limit(2000).all():
             yield row
 
 
@@ -156,14 +156,26 @@ def open_jobs_count(db: Session) -> int:
     return db.query(func.count(Job.id)).filter(Job.status.in_(["open", "matched"])).scalar() or 0
 
 
+def _guess_category(row: ExternalListing) -> str:
+    from app.utils.ai import _rule_based_analysis
+    return _rule_based_analysis(row.title or "", row.description or "", 0).get("category") or "Other"
+
+
 def top_up_open_jobs(db: Session, target: int | None = None, max_age_days: int | None = None,
-                     min_fit: float = 0, max_import: int = 300) -> dict:
-    """Import fresh leads until at least `target` jobs are open."""
+                     min_fit: float = 0, max_import: int = 300, max_category_share: float | None = None) -> dict:
+    """Import fresh leads until at least `target` jobs are open, keeping the board
+    multi-industry: no single category may exceed `max_category_share` of the
+    open jobs (leads over the cap are skipped while other industries remain)."""
     target = settings.RADAR_MIN_OPEN_JOBS if target is None else target
     max_age_days = max_age_days or settings.RADAR_IMPORT_MAX_AGE_DAYS
     before = open_jobs_count(db)
     need = max(0, target - before)
+    share = settings.RADAR_MAX_CATEGORY_SHARE if max_category_share is None else max_category_share
+    cap = max(1, int(target * share)) if share and share < 1 else None
+    per_cat = dict(db.query(Job.category, func.count(Job.id))
+                   .filter(Job.status.in_(["open", "matched"])).group_by(Job.category).all())
     imported, failed, by_source, seen_titles = 0, 0, {}, set()
+    by_category: dict[str, int] = {}
     if need:
         bot = radar_bot(db)
         seen_titles = {t.lower() for (t,) in db.query(Job.title).filter(Job.client_id == bot.id,
@@ -174,8 +186,13 @@ def top_up_open_jobs(db: Session, target: int | None = None, max_age_days: int |
             key = (row.title or "").strip().lower()
             if not key or key in seen_titles:  # same gig reposted / cross-posted
                 continue
+            category = _guess_category(row)
+            if cap is not None and per_cat.get(category, 0) >= cap:
+                continue  # this industry already has its share of the board
             try:
                 import_listing_row(db, row, bot)
+                per_cat[category] = per_cat.get(category, 0) + 1
+                by_category[category] = by_category.get(category, 0) + 1
                 seen_titles.add(key)
                 imported += 1
                 by_source[row.source] = by_source.get(row.source, 0) + 1
@@ -184,7 +201,7 @@ def top_up_open_jobs(db: Session, target: int | None = None, max_age_days: int |
                 db.rollback()
                 failed += 1
     return {"open_before": before, "target": target, "imported": imported, "failed": failed,
-            "by_source": by_source, "open_after": open_jobs_count(db)}
+            "by_source": by_source, "by_category": by_category, "open_after": open_jobs_count(db)}
 
 
 def expire_stale_imports(db: Session, max_age_days: int | None = None) -> int:

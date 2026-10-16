@@ -5,10 +5,10 @@ import PortalNav from "@/components/PortalNav";
 import Footer from "@/components/Footer";
 import { useLang } from "@/lib/i18n";
 import { Btn } from "@/components/ui";
-import { CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, categoryLabel } from "@/lib/categories";
 
 export default function Home() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   const features = [
     { icon: "🤖", title: t("features.ai.title"), desc: t("features.ai.desc") },
@@ -99,7 +99,7 @@ export default function Home() {
         <div style={{ maxWidth: "1300px", margin: "0 auto", display: "flex", flexWrap: "wrap", gap: "0.8rem", justifyContent: "center" }}>
           {CATEGORIES.map((c) => (
             <span key={c} className="glass" style={{ padding: "0.7rem 1.4rem", borderRadius: "30px", fontSize: "0.85rem", fontWeight: "600", color: "var(--text-secondary)" }}>
-              {c}
+              {categoryLabel(c, lang)}
             </span>
           ))}
         </div>

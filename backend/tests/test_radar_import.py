@@ -40,15 +40,16 @@ def test_top_up_reaches_target_quietly_and_expires_stale(client, monkeypatch):
         rows.append(_row(external_id="topup-old", title="Old glass gig", posted_at=now - timedelta(days=60)))
         rows.append(_row(external_id="topup-short", title="Short glass gig", description="too short"))
         rows.append(_row(external_id="topup-dupe", title="Glassblowing lantern commission 0",
-                         description="Cross-posted duplicate of an earlier lead, glassblowing lanterns. " * 2, fit_score=10.0))
+                         description="Cross-posted duplicate of an earlier lead, glassblowing lanterns. " * 2, fit_score=10.0,
+                         posted_at=now - timedelta(days=1)))
         db.add_all(rows)
         db.commit()
 
         target = radar_import.open_jobs_count(db) + 4
-        result = radar_import.top_up_open_jobs(db, target=target)
+        result = radar_import.top_up_open_jobs(db, target=target, max_category_share=1)
         assert result["imported"] == 4 and result["open_after"] >= target
         # already at target -> nothing more
-        assert radar_import.top_up_open_jobs(db, target=target)["imported"] == 0
+        assert radar_import.top_up_open_jobs(db, target=target, max_category_share=1)["imported"] == 0
 
         imported = db.query(Job).filter(Job.external_source == "freelancer", Job.title.like("Glassblowing lantern%")).all()
         assert len(imported) == 4, imported
@@ -92,3 +93,33 @@ def test_llm_analysis_prompt_formats_and_parses(monkeypatch):
     out = ai.analyze_job("Shop build", "Build a WooCommerce shop", 1000, "2026-12-01", "Remote")
     assert out["model"] == "llm" and out["fair_price"] == 900
     assert '"category": one of' in seen["prompt"] and "Shop build" in seen["prompt"]
+
+
+def test_top_up_caps_each_industry_share(client, monkeypatch):
+    """A board flooded by one trade (web dev) is not multi-industry: the cap skips
+    leads of a full category while other industries are still available."""
+    monkeypatch.setattr(radar_import, "_fetch_live_rates", lambda: ({"PLN": 1.0, "USD": 0.25}, "test"))
+    db = SessionLocal()
+    try:
+        rows = [_row(external_id=f"cap-acc-{i}", title=f"Bookkeeping and VAT invoices for a bakery {i}",
+                     description="Accounting and bookkeeping, VAT invoices and payroll for a small bakery. " * 2)
+                for i in range(5)]
+        rows += [_row(external_id=f"cap-law-{i}", title=f"Lawyer to review a GDPR contract {i}",
+                      description="Legal review of a contract and GDPR (RODO) compliance by a lawyer. " * 2)
+                 for i in range(5)]
+        db.add_all(rows)
+        db.commit()
+        start = radar_import.open_jobs_count(db)
+        target = start + 6
+        # cap = int(target * share) = 2 leads per industry
+        res = radar_import.top_up_open_jobs(db, target=target, max_category_share=2.5 / target)
+        assert res["by_category"] == {"Accounting & Finance": 2, "Legal": 2}, res
+    finally:
+        db.close()
+
+
+def test_new_industries_are_recognised_offline():
+    from app.utils.ai import _rule_based_analysis
+    assert _rule_based_analysis("Księgowa do faktur VAT", "Prowadzenie księgowości i kadry i płace", 500)["category"] == "Accounting & Finance"
+    assert _rule_based_analysis("AutoCAD drawings", "Architect needed for interior design drawings in AutoCAD", 500)["category"] == "Engineering & Architecture"
+    assert _rule_based_analysis("Korepetycje z matematyki", "Nauczyciel na lekcje online, korepetycje", 300)["category"] == "Education & Tutoring"

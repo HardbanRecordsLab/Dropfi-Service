@@ -7,12 +7,12 @@ import { Btn, inputStyle, labelStyle } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
-import { CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, categoryLabel } from "@/lib/categories";
 
 export default function NewJobPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -166,7 +166,7 @@ export default function NewJobPage() {
           <select style={inputStyle} value={form.category} onChange={(e) => set("category", e.target.value)}>
             <option value="">Auto (AI)</option>
             {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>{categoryLabel(c, lang)}</option>
             ))}
           </select>
         </div>
