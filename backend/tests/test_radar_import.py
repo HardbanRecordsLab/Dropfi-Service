@@ -69,3 +69,26 @@ def test_top_up_reaches_target_quietly_and_expires_stale(client, monkeypatch):
         assert radar_import.expire_stale_imports(db, max_age_days=14) >= 2
     finally:
         db.close()
+
+
+def test_budget_junk_range_uses_realistic_point(monkeypatch):
+    monkeypatch.setattr(radar_import, "_fetch_live_rates", lambda: ({"PLN": 1.0, "USD": 0.25}, "test"))
+    assert radar_import.budget_to_pln(_row(external_id="j", budget_text="$10 - $100000", currency="USD")) == (120.0, True)
+
+
+def test_llm_analysis_prompt_formats_and_parses(monkeypatch):
+    """Regression: literal JSON braces in ANALYSIS_PROMPT made .format() raise
+    KeyError on every LLM call, so production matching never ran with a key set."""
+    from app.utils import ai
+    seen = {}
+
+    def fake_llm(prompt, **kw):
+        seen["prompt"] = prompt
+        return ('{"category": "Web Development", "subcategory": "x", "skills": ["php"], "urgency": "low",'
+                ' "experience_level": "mid", "fair_price": 900, "key_requirements": "y"}')
+
+    monkeypatch.setattr(ai, "llm_enabled", lambda: True)
+    monkeypatch.setattr(ai, "llm_text", fake_llm)
+    out = ai.analyze_job("Shop build", "Build a WooCommerce shop", 1000, "2026-12-01", "Remote")
+    assert out["model"] == "llm" and out["fair_price"] == 900
+    assert '"category": one of' in seen["prompt"] and "Shop build" in seen["prompt"]

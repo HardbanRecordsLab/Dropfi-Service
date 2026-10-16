@@ -182,7 +182,7 @@ def _rule_based_analysis(title: str, description: str, budget: float) -> dict:
 
 ANALYSIS_PROMPT = """You are an expert job classifier for a freelance / e-commerce matching marketplace. Analyze the job posting and return ONLY valid JSON (no markdown, no commentary) with exactly these keys:
 
-{
+{{
   "category": one of {categories},
   "subcategory": "short specific type",
   "skills": ["3-5 required skills, lowercase english"],
@@ -190,7 +190,7 @@ ANALYSIS_PROMPT = """You are an expert job classifier for a freelance / e-commer
   "experience_level": "junior|mid|senior",
   "fair_price": estimated fair price in PLN as a number,
   "key_requirements": "1-2 sentence summary"
-}
+}}
 
 Job title: {title}
 Description: {description}
@@ -226,7 +226,11 @@ claude_analysis = llm_analysis
 
 def analyze_job(title: str, description: str, budget: float, deadline: str, location: str) -> dict:
     if llm_enabled():
-        data = llm_analysis(title, description, budget, deadline, location)
+        try:
+            data = llm_analysis(title, description, budget, deadline, location)
+        except Exception:  # noqa: BLE001 — never let the LLM path break matching
+            logger.exception("LLM analysis crashed, using rules")
+            data = None
         if data:
             return data
     return _rule_based_analysis(title, description, budget)

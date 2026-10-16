@@ -7,7 +7,7 @@ celery_app = Celery(
     "dropify",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.tasks.matching", "app.tasks.reports", "app.tasks.radar"],
+    include=["app.tasks.matching", "app.tasks.reports", "app.tasks.radar", "app.tasks.n8n_sync"],
 )
 
 # Make this the app that bare @shared_task binds to — without it, .delay()

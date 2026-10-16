@@ -89,7 +89,11 @@ def budget_to_pln(row: ExternalListing) -> tuple[float, bool]:
     rate = (rates or {}).get(code)  # 1 PLN = rate * CUR
     if not rate:
         return DEFAULT_BUDGET_PLN, False
-    pln = max(amounts) / rate
+    lo, hi = min(amounts), max(amounts)
+    # Freelancer.com allows junk ranges like "$10 - $100000"; above a 10x spread,
+    # take a realistic point near the low end instead of the ceiling.
+    amount = hi if hi <= lo * 10 else min(hi, lo * 3)
+    pln = amount / rate
     return round(max(pln, MIN_BUDGET_PLN), 0), True
 
 
@@ -144,7 +148,7 @@ def _candidates(db: Session, max_age_days: int, min_fit: float):
         if source in disabled:
             continue
         sq = q.filter(~ExternalListing.source.in_(SOURCE_PRIORITY)) if source == "*" else q.filter(ExternalListing.source == source)
-        for row in sq.order_by(ExternalListing.fit_score.desc().nullslast(), ExternalListing.posted_at.desc().nullslast()).yield_per(200):
+        for row in sq.order_by(ExternalListing.fit_score.desc().nullslast(), ExternalListing.posted_at.desc().nullslast()).limit(2000).all():
             yield row
 
 
