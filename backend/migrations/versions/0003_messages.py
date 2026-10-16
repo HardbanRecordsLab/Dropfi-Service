@@ -1,7 +1,7 @@
 """Client <-> freelancer chat (messages table).
 
-Revision ID: 0002_messages
-Revises: 0001_baseline
+Revision ID: 0003_messages
+Revises: 0002_radar_sales_agent
 Create Date: 2026-10-16
 """
 from typing import Sequence, Union
@@ -9,8 +9,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0002_messages"
-down_revision: Union[str, None] = "0001_baseline"
+revision: str = "0003_messages"
+down_revision: Union[str, None] = "0002_radar_sales_agent"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
