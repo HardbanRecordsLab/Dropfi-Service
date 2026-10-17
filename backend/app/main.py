@@ -11,7 +11,7 @@ from app.config import settings
 from app.database import init_db, SessionLocal
 from app.routes import (
     auth, users, jobs, matches, ratings, analytics, contracts,
-    admin, plans, notifications, webhooks, referrals, n8n,
+    admin, notifications, webhooks, referrals, n8n,
     factory, payments, copilot, developer, fx, integrations, invoices, badges, radar, messages, mcp,
 )
 
@@ -146,7 +146,6 @@ app.include_router(ratings.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(contracts.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
-app.include_router(plans.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(webhooks.router, prefix="/api")
 app.include_router(referrals.router, prefix="/api")

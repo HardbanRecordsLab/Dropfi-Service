@@ -112,21 +112,3 @@ def test_job_update_cannot_force_status_or_negative_budget(client):
     }).json()
     assert client.put(f"/api/jobs/{job['id']}", headers=c_h, json={"status": "completed"}).status_code == 422
     assert client.put(f"/api/jobs/{job['id']}", headers=c_h, json={"budget": -10}).status_code == 422
-
-
-def test_paid_plan_needs_checkout_when_stripe_enabled(client, monkeypatch):
-    import sys
-    import types
-
-    class _Session:
-        url = "https://checkout.stripe.test/s/1"
-
-    fake = types.SimpleNamespace(api_key=None, checkout=types.SimpleNamespace(
-        Session=types.SimpleNamespace(create=lambda **kw: _Session())))
-    monkeypatch.setitem(sys.modules, "stripe", fake)
-    monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", "sk_test_fake")
-    u = register(client, "client")
-    h = auth_headers(u["access_token"])
-    resp = client.post("/api/plans/subscribe?plan=pro", headers=h).json()
-    assert resp["mode"] == "stripe" and resp["checkout_url"]
-    assert client.get("/api/auth/me", headers=h).json()["plan"] == "free"

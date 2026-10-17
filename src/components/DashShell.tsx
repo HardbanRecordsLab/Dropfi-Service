@@ -111,7 +111,7 @@ export default function DashShell({ children }: { children: React.ReactNode }) {
                 {user.first_name} {user.last_name}
               </div>
               <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase" }}>
-                {user.role} · {user.plan}
+                {user.role}
               </div>
             </div>
             <LangSwitch />

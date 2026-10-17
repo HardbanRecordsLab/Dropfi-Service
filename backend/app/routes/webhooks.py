@@ -48,10 +48,6 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if event_type == "checkout.session.completed" and obj.get("payment_status") not in (None, "paid", "no_payment_required"):
             return {"received": True, "status": "awaiting_async_payment"}
         metadata = obj.get("metadata", {})
-        if metadata.get("kind") == "plan":
-            from app.routes.plans import activate_plan
-            activate_plan(db, metadata.get("user_id", ""), metadata.get("plan", ""), obj.get("id", ""))
-            return {"received": True}
         contract_id = metadata.get("contract_id")
         payment_id = metadata.get("payment_id")
         milestone_id = metadata.get("milestone_id")

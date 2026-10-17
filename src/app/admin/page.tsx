@@ -201,7 +201,6 @@ export default function AdminPage() {
             <tr style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid var(--border-subtle)" }}>
               <th style={{ padding: "1rem 2rem", fontSize: "0.72rem", textTransform: "uppercase", color: "var(--text-muted)" }}>Email</th>
               <th style={{ padding: "1rem 2rem", fontSize: "0.72rem", textTransform: "uppercase", color: "var(--text-muted)" }}>Role</th>
-              <th style={{ padding: "1rem 2rem", fontSize: "0.72rem", textTransform: "uppercase", color: "var(--text-muted)" }}>Plan</th>
               <th style={{ padding: "1rem 2rem", fontSize: "0.72rem", textTransform: "uppercase", color: "var(--text-muted)" }}>Rating</th>
               <th style={{ padding: "1rem 2rem", fontSize: "0.72rem", textTransform: "uppercase", color: "var(--text-muted)" }}>Joined</th>
             </tr>
@@ -211,11 +210,6 @@ export default function AdminPage() {
               <tr key={u.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
                 <td style={{ padding: "1rem 2rem", fontWeight: "600" }}>{u.email}</td>
                 <td style={{ padding: "1rem 2rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>{u.role}</td>
-                <td style={{ padding: "1rem 2rem", fontSize: "0.85rem" }}>
-                  <span style={{ color: u.plan === "pro" ? "var(--accent-gold)" : "var(--text-secondary)", fontWeight: "700" }}>
-                    {u.plan?.toUpperCase()}
-                  </span>
-                </td>
                 <td style={{ padding: "1rem 2rem", fontSize: "0.85rem" }}>⭐ {u.rating}</td>
                 <td style={{ padding: "1rem 2rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
                   {u.created_at?.slice(0, 10)}

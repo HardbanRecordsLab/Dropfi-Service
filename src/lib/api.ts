@@ -141,8 +141,7 @@ export const API = {
   adminUsers: () => api("/admin/users"),
   adminVerificationQueue: () => api("/admin/verification-queue"),
 
-  // Plans / Notifications
-  subscribe: (plan: string) => api(`/plans/subscribe?plan=${plan}`, { method: "POST" }),
+  // Notifications
   notifications: () => api("/notifications"),
   readNotifications: () => api("/notifications/read-all", { method: "POST" }),
 
