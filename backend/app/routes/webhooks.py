@@ -1,3 +1,4 @@
+import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -37,6 +38,8 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         logger.warning("Stripe webhook signature verification failed (%s)", exc)
         raise HTTPException(status_code=400, detail="Invalid signature")
 
+    # stripe-python >= 12 returns a StripeObject, not a dict (`.get` raises) — work on the verified raw JSON instead.
+    event = json.loads(raw_body)
     event_type = event.get("type", "")
     obj = event.get("data", {}).get("object", {})
 
