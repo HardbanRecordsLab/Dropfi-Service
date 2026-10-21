@@ -394,6 +394,8 @@ def generate_job_draft(idea: str) -> dict:
     if llm_enabled():
         data = _claude_json(
             "You help a client create a job post. From this short idea, generate a complete job draft.\n"
+            "Write the title, description and required_skills in the SAME LANGUAGE as the idea "
+            "(an idea written in Polish must produce Polish text); keep the category exactly as one of the English values listed.\n"
             f"Idea: {idea[:500]}\n\n"
             "Return JSON only: {\"title\": \"short clear title\", \"description\": \"2-4 sentence description\", "
             "\"category\": \"one of: Photography, Coding, Design, Writing, Marketing, Video & Animation, "
