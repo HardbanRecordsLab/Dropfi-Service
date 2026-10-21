@@ -66,6 +66,7 @@ export default function RootLayout({
   return (
     <html lang="pl" className={`${outfit.variable} ${playfair.variable}`}>
       <body style={{ fontFamily: "var(--font-outfit), sans-serif" }}>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://hardbanrecordslab.online/#org","name":"HardbanRecords Lab","url":"https://hardbanrecordslab.online/","logo":{"@type":"ImageObject","url":"https://dropify.hardbanrecordslab.online/icon-512.png"}},{"@type":"WebApplication","name":"DROPIFY","url":"https://dropify.hardbanrecordslab.online/","image":"https://dropify.hardbanrecordslab.online/og-image.png","logo":"https://dropify.hardbanrecordslab.online/icon-512.png","applicationCategory":"BusinessApplication","operatingSystem":"Web","publisher":{"@id":"https://hardbanrecordslab.online/#org"}}]}) }} />
         <LangProvider>
           <AuthProvider>{children}</AuthProvider>
         </LangProvider>
