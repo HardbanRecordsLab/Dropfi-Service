@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
 import type { CheckoutResult, Contract, Milestone } from "@/lib/types";
+import { Ico } from "@/components/Ico";
 
 export default function ContractsPage() {
   const { user } = useAuth();
@@ -132,7 +133,7 @@ export default function ContractsPage() {
 
       {contracts.length === 0 ? (
         <div className="premium-card" style={{ textAlign: "center", padding: "4rem" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>📄</div>
+          <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}><Ico e="📄" /></div>
           <p style={{ color: "var(--text-secondary)" }}>{t("contracts.none")}</p>
         </div>
       ) : (
@@ -152,7 +153,7 @@ export default function ContractsPage() {
                       </Badge>
                       {c.fee_rate !== 0.08 && (
                         <span style={{ fontSize: "0.68rem", color: "var(--accent-gold)", fontWeight: "700" }}>
-                          ⚡ {t("contracts.feeTier")} ({(c.fee_rate * 100).toFixed(0)}%)
+                          <Ico e="⚡" /> {t("contracts.feeTier")} ({(c.fee_rate * 100).toFixed(0)}%)
                         </span>
                       )}
                     </div>
@@ -195,7 +196,7 @@ export default function ContractsPage() {
                       onClick={() => downloadAgreement(c.id)}
                       style={{ marginTop: "0.6rem", fontSize: "0.72rem", color: "var(--accent-gold)", fontWeight: "700" }}
                     >
-                      📄 {t("agreement.download")}
+                      <Ico e="📄" /> {t("agreement.download")}
                     </button>
                   </div>
                 </div>
@@ -258,7 +259,7 @@ export default function ContractsPage() {
                                 {/* Stripe on: paying releases the milestone (webhook). Demo: instant release. */}
                                 {stripeEnabled ? (
                                   <Btn onClick={() => pay(c.id, m.id)}>
-                                    💳 {t("pay.stripe")}
+                                    <Ico e="💳" /> {t("pay.stripe")}
                                   </Btn>
                                 ) : (
                                   <Btn variant="outline" onClick={() => act(() => API.releaseMilestone(c.id, m.id), "Payment released")}>
@@ -276,7 +277,7 @@ export default function ContractsPage() {
 
                 {allReleased && c.status === "completed" && (
                   <div style={{ marginTop: "1.2rem", fontSize: "0.85rem", color: "#4ade80", fontWeight: "700" }}>
-                    🎉 {t("ms.completed")}
+                    <Ico e="🎉" /> {t("ms.completed")}
                   </div>
                 )}
 
@@ -297,10 +298,10 @@ export default function ContractsPage() {
                     }}
                   >
                     <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", flex: 1, minWidth: "220px" }}>
-                      🛡️ <b>{t("refund.title")}</b>
+                      <Ico e="🛡️" /> <b>{t("refund.title")}</b>
                       <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
                         {c.refund_eligible ? (
-                          <span style={{ color: "#4ade80", fontWeight: "700" }}>✓ {t("refund.eligible")} — {t("refund.desc")}</span>
+                          <span style={{ color: "#4ade80", fontWeight: "700" }}><Ico e="✓" /> {t("refund.eligible")} — {t("refund.desc")}</span>
                         ) : (
                           t("refund.desc")
                         )}
@@ -343,7 +344,7 @@ export default function ContractsPage() {
                         onClick={() => setDisputeOpen((s) => ({ ...s, [c.id]: true }))}
                         style={{ fontSize: "0.75rem", color: "#f87171", fontWeight: "700" }}
                       >
-                        ⚠️ {t("dispute.raise")}
+                        <Ico e="⚠️" /> {t("dispute.raise")}
                       </button>
                     )}
                   </div>
@@ -353,12 +354,12 @@ export default function ContractsPage() {
                 {c.status === "disputed" && (
                   <div style={{ marginTop: "1.2rem", padding: "1.2rem", background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: "4px" }}>
                     <div style={{ fontSize: "0.85rem", color: "#f87171", fontWeight: "700", marginBottom: "0.5rem" }}>
-                      ⚠️ {t("dispute.title")} — {t("dispute.raisedBy")}: {c.dispute_raised_by}
+                      <Ico e="⚠️" /> {t("dispute.title")} — {t("dispute.raisedBy")}: {c.dispute_raised_by}
                     </div>
                     <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>{c.dispute_reason}</p>
                     {c.dispute_ai_assessment && (
                       <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontStyle: "italic" }}>
-                        🤖 {t("dispute.aiAssessment")}: {c.dispute_ai_assessment}
+                        <Ico e="🤖" /> {t("dispute.aiAssessment")}: {c.dispute_ai_assessment}
                       </p>
                     )}
                     <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>{t("dispute.pending")}</p>

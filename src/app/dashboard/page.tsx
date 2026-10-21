@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API } from "@/lib/api";
 import type { Analytics, JobListItem, Match, Contract } from "@/lib/types";
+import { Ico } from "@/components/Ico";
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -156,7 +157,7 @@ export default function DashboardPage() {
               </div>
               {myJobs.length === 0 ? (
                 <div className="premium-card" style={{ textAlign: "center", padding: "3rem" }}>
-                  <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>📋</div>
+                  <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}><Ico e="📋" /></div>
                   <p style={{ color: "var(--text-secondary)" }}>{t("dash.emptyJobs")}</p>
                   <div style={{ marginTop: "1.5rem" }}>
                     <Link href="/dashboard/jobs/new">
@@ -198,7 +199,7 @@ export default function DashboardPage() {
 
           {isAdmin && (
             <div className="premium-card" style={{ textAlign: "center", padding: "4rem" }}>
-              <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🛠️</div>
+              <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}><Ico e="🛠️" /></div>
               <h2 style={{ fontSize: "1.4rem", marginBottom: "0.5rem" }}>{t("admin.title")}</h2>
               <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>{t("dash.revenue")}</p>
               <Link href="/admin">

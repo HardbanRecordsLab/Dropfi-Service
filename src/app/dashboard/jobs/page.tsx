@@ -10,6 +10,7 @@ import { useLang } from "@/lib/i18n";
 import { API } from "@/lib/api";
 import type { JobListItem } from "@/lib/types";
 import { CATEGORIES, categoryLabel } from "@/lib/categories";
+import { Ico } from "@/components/Ico";
 
 export default function JobsPage() {
   const { user } = useAuth();
@@ -89,7 +90,7 @@ export default function JobsPage() {
 
       {filtered.length === 0 ? (
         <div className="premium-card" style={{ textAlign: "center", padding: "4rem" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🔍</div>
+          <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}><Ico e="🔍" /></div>
           <p style={{ color: "var(--text-secondary)" }}>{t("dash.emptyJobs")}</p>
         </div>
       ) : (

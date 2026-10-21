@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Ico } from "@/components/Ico";
 
 export const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -92,7 +93,7 @@ export function StatCard({
             fontWeight: "900",
           }}
         >
-          {icon}
+          <Ico e={icon} size="5rem" />
         </div>
       )}
       <div

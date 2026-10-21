@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API } from "@/lib/api";
 import type { Freelancer, RiskScore } from "@/lib/types";
+import { Ico } from "@/components/Ico";
 
 const RISK_COLOR: Record<string, string> = { low: "#4ade80", medium: "var(--accent-gold)", high: "#f87171" };
 
@@ -27,7 +28,7 @@ function RiskBadge({ userId }: { userId: string }) {
   if (!risk) return null;
   return (
     <Badge color={RISK_COLOR[risk.level]}>
-      🛡️ {risk.score}/100 · {t(`risk.${risk.level}`)}
+      <Ico e="🛡️" /> {risk.score}/100 · {t(`risk.${risk.level}`)}
     </Badge>
   );
 }
@@ -90,7 +91,7 @@ export default function FreelancersPage() {
                     {f.first_name} {f.last_name}
                   </div>
                   <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                    {f.location || t("common.remote")} · ⭐ {f.rating} ({f.rating_count})
+                    {f.location || t("common.remote")} · <Ico e="⭐" /> {f.rating} ({f.rating_count})
                   </div>
                 </div>
                 <Badge color={f.availability === "available" ? "#4ade80" : "#f87171"}>

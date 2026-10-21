@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
 import type { ExternalListing, ExternalTalent, RadarSource, RadarStats } from "@/lib/types";
+import { Ico } from "@/components/Ico";
 
 // RADAR_ALERT_MIN_SCORE on the backend defaults to 60 and isn't exposed via
 // an endpoint; "only relevant" mirrors that default rather than reading the
@@ -277,7 +278,7 @@ export default function RadarPage() {
                     {l.contact && <div style={{ fontSize: "0.78rem", color: "var(--accent-gold)", marginTop: "0.4rem" }}>{t("radar.contact")}: {l.contact}</div>}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-end" }}>
-                    <a href={l.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.78rem", color: "var(--accent-gold)" }}>{t("radar.open")} ↗</a>
+                    <a href={l.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.78rem", color: "var(--accent-gold)" }}>{t("radar.open")} <Ico e="↗" /></a>
                     {canAct && l.status === "new" && (
                       <>
                         <Btn onClick={() => act(() => API.radarImportListing(l.id))} disabled={busy}>{t("radar.import")}</Btn>
@@ -374,7 +375,7 @@ export default function RadarPage() {
                   {[p.location, p.skills.slice(0, 4).join(", "), p.followers ? `★ ${p.followers}` : ""].filter(Boolean).join(" · ")}
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.8rem", flexWrap: "wrap" }}>
-                  <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.78rem", color: "var(--accent-gold)" }}>{t("radar.open")} ↗</a>
+                  <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.78rem", color: "var(--accent-gold)" }}>{t("radar.open")} <Ico e="↗" /></a>
                   {canAct && (
                     <>
                       <Btn variant="ghost" onClick={() => act(() => API.radarSetTalentStatus(p.id, "contacted"))} disabled={busy} style={{ padding: "0.5rem 1rem" }}>{t("radar.talent.contacted")}</Btn>
@@ -417,7 +418,7 @@ export default function RadarPage() {
                   {s.last_scan_error && <div style={{ fontSize: "0.72rem", color: "#f87171", marginTop: "0.2rem" }}>{s.last_scan_error}</div>}
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <a href={s.homepage} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.78rem", color: "var(--accent-gold)" }}>↗</a>
+                  <a href={s.homepage} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.78rem", color: "var(--accent-gold)" }}><Ico e="↗" /></a>
                   {isAdmin && s.enabled && (
                     <Btn variant="outline" onClick={() => scan(s.slug)} disabled={busy} style={{ padding: "0.5rem 1rem" }}>{t("radar.scanNow")}</Btn>
                   )}

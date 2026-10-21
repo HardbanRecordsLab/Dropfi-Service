@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
 import type { StoreConnection } from "@/lib/types";
+import { Ico } from "@/components/Ico";
 
 export default function IntegrationsPage() {
   const { user } = useAuth();
@@ -110,7 +111,7 @@ export default function IntegrationsPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
         <div className="premium-card">
-          <h3 style={{ fontSize: "1.1rem", fontFamily: "var(--font-playfair)", marginBottom: "1rem" }}>🛍️ {t("int.shopify")}</h3>
+          <h3 style={{ fontSize: "1.1rem", fontFamily: "var(--font-playfair)", marginBottom: "1rem" }}><Ico e="🛍️" /> {t("int.shopify")}</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div>
               <label style={labelStyle}>{t("int.shopDomain")}</label>
@@ -129,7 +130,7 @@ export default function IntegrationsPage() {
         </div>
 
         <div className="premium-card">
-          <h3 style={{ fontSize: "1.1rem", fontFamily: "var(--font-playfair)", marginBottom: "1rem" }}>📦 {t("int.baselinker")}</h3>
+          <h3 style={{ fontSize: "1.1rem", fontFamily: "var(--font-playfair)", marginBottom: "1rem" }}><Ico e="📦" /> {t("int.baselinker")}</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div>
               <label style={labelStyle}>{t("int.label")}</label>

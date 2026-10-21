@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
 import type { Match } from "@/lib/types";
+import { Ico } from "@/components/Ico";
 
 export default function MatchesPage() {
   const { user } = useAuth();
@@ -89,7 +90,7 @@ export default function MatchesPage() {
 
       {matches.length === 0 ? (
         <div className="premium-card" style={{ textAlign: "center", padding: "4rem" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🤝</div>
+          <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}><Ico e="🤝" /></div>
           <p style={{ color: "var(--text-secondary)" }}>{t("dash.emptyMatches")}</p>
           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
             {t("dash.recommended")}:{" "}
@@ -138,7 +139,7 @@ export default function MatchesPage() {
                   {m.job?.interview_questions && m.job.interview_questions.length > 0 && m.interview_score == null && (
                     <div>
                       <div style={{ fontSize: "0.75rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", color: "var(--accent-gold)", marginBottom: "0.6rem" }}>
-                        🎙️ {t("interview.title")}
+                        <Ico e="🎙️" /> {t("interview.title")}
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem", marginBottom: "0.8rem" }}>
                         {m.job.interview_questions.map((q, i) => (
@@ -172,7 +173,7 @@ export default function MatchesPage() {
                   )}
                   {m.interview_score != null && (
                     <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                      🎙️ {t("interview.title")}: <b className="gold-gradient-text">{m.interview_score}/100</b>
+                      <Ico e="🎙️" /> {t("interview.title")}: <b className="gold-gradient-text">{m.interview_score}/100</b>
                     </div>
                   )}
 
@@ -200,7 +201,7 @@ export default function MatchesPage() {
                     </div>
                   ) : (
                     <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                      💬 {t(`nego.${m.price_status === "declined" ? "declined" : "proposed"}`)}
+                      <Ico e="💬" /> {t(`nego.${m.price_status === "declined" ? "declined" : "proposed"}`)}
                       {m.price_proposal ? `: ${m.price_proposal.toLocaleString()} ${t("common.currency")}` : ""}
                     </div>
                   )}

@@ -7,6 +7,7 @@ import { useLang } from "@/lib/i18n";
 import { API } from "@/lib/api";
 import { Loading } from "@/components/ui";
 import LangSwitch from "@/components/LangSwitch";
+import { Ico } from "@/components/Ico";
 
 function VerifyEmailInner() {
   const { t } = useLang();
@@ -35,7 +36,7 @@ function VerifyEmailInner() {
       {status === "loading" && <p style={{ color: "var(--text-secondary)" }}>{t("auth.verifyEmail.verifying")}</p>}
       {status === "success" && (
         <div style={{ padding: "1rem", background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.3)", borderRadius: "4px", color: "#4ade80", fontSize: "0.9rem" }}>
-          ✓ {t("auth.verifyEmail.success")}
+          <Ico e="✓" /> {t("auth.verifyEmail.success")}
         </div>
       )}
       {status === "error" && (

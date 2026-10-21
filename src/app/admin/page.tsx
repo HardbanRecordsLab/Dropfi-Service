@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
 import type { AdminDispute, AdminStats, VerificationQueue } from "@/lib/types";
+import { Ico } from "@/components/Ico";
 
 interface AdminUserRow {
   id: string;
@@ -102,7 +103,7 @@ export default function AdminPage() {
 
       <div className="premium-card" style={{ padding: 0, overflow: "hidden", marginBottom: "3rem" }}>
         <div style={{ padding: "1.5rem 2rem", borderBottom: "1px solid var(--border-subtle)" }}>
-          <h2 style={{ fontSize: "1.2rem", fontFamily: "var(--font-playfair)" }}>⚠️ {t("admin.disputes")}</h2>
+          <h2 style={{ fontSize: "1.2rem", fontFamily: "var(--font-playfair)" }}><Ico e="⚠️" /> {t("admin.disputes")}</h2>
         </div>
         {disputes.length === 0 ? (
           <p style={{ padding: "2rem", color: "var(--text-secondary)", fontSize: "0.85rem" }}>{t("admin.disputes.none")}</p>
@@ -114,7 +115,7 @@ export default function AdminPage() {
                   <div>
                     <b>{d.job_title}</b> — {d.amount.toLocaleString()} {t("common.currency")}
                     <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
-                      {d.client_email} ↔ {d.freelancer_email}
+                      {d.client_email} <Ico e="↔" /> {d.freelancer_email}
                     </div>
                   </div>
                   <Badge color="#f87171">{t("dispute.raisedBy")}: {d.dispute_raised_by}</Badge>
@@ -122,7 +123,7 @@ export default function AdminPage() {
                 <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>{d.dispute_reason}</p>
                 {d.dispute_ai_assessment && (
                   <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontStyle: "italic", marginBottom: "0.8rem" }}>
-                    🤖 {t("dispute.aiAssessment")}: {d.dispute_ai_assessment}
+                    <Ico e="🤖" /> {t("dispute.aiAssessment")}: {d.dispute_ai_assessment}
                   </p>
                 )}
                 <div style={{ display: "flex", gap: "0.6rem" }}>
@@ -142,7 +143,7 @@ export default function AdminPage() {
       <div className="premium-card" style={{ padding: 0, overflow: "hidden", marginBottom: "3rem" }}>
         <div style={{ padding: "1.5rem 2rem", borderBottom: "1px solid var(--border-subtle)" }}>
           <h2 style={{ fontSize: "1.2rem", fontFamily: "var(--font-playfair)" }}>
-            🔎 AI Verification Queue
+            <Ico e="🔎" /> AI Verification Queue
           </h2>
           <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
             Freelancer profiles and job postings the AI check flagged or wants reviewed — doesn&apos;t block anything, just surfaces it.
@@ -210,7 +211,7 @@ export default function AdminPage() {
               <tr key={u.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
                 <td style={{ padding: "1rem 2rem", fontWeight: "600" }}>{u.email}</td>
                 <td style={{ padding: "1rem 2rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>{u.role}</td>
-                <td style={{ padding: "1rem 2rem", fontSize: "0.85rem" }}>⭐ {u.rating}</td>
+                <td style={{ padding: "1rem 2rem", fontSize: "0.85rem" }}><Ico e="⭐" /> {u.rating}</td>
                 <td style={{ padding: "1rem 2rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
                   {u.created_at?.slice(0, 10)}
                 </td>

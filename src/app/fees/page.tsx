@@ -6,6 +6,7 @@ import PortalNav from "@/components/PortalNav";
 import Footer from "@/components/Footer";
 import { useLang } from "@/lib/i18n";
 import { Btn, inputStyle } from "@/components/ui";
+import { Ico } from "@/components/Ico";
 
 export default function FeesPage() {
   const { t } = useLang();
@@ -102,7 +103,7 @@ export default function FeesPage() {
                       </div>
                       {savings > 0 && p.highlight && (
                         <div style={{ fontSize: "0.85rem", fontWeight: "800", color: "#4ade80", marginTop: "0.5rem" }}>
-                          ✓ {t("fees.save")}: {(fee - amount * best.rate).toLocaleString()} {t("common.currency")}
+                          <Ico e="✓" /> {t("fees.save")}: {(fee - amount * best.rate).toLocaleString()} {t("common.currency")}
                         </div>
                       )}
                     </div>
@@ -112,7 +113,7 @@ export default function FeesPage() {
             </div>
 
             <div style={{ marginTop: "2rem", padding: "1.2rem 1.5rem", background: "rgba(197,160,89,0.06)", border: "1px dashed var(--border-gold)", borderRadius: "4px", fontSize: "0.88rem", color: "var(--text-secondary)" }}>
-              ⭐ {t("fees.dynamic")}
+              <Ico e="⭐" /> {t("fees.dynamic")}
             </div>
 
             <div style={{ textAlign: "center", marginTop: "2.5rem" }}>

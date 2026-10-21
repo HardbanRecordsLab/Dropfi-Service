@@ -6,6 +6,7 @@ import { Btn, Loading, inputStyle, labelStyle } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API } from "@/lib/api";
+import { Ico } from "@/components/Ico";
 
 interface ProfileForm {
   first_name: string;
@@ -158,7 +159,7 @@ export default function ProfilePage() {
           }}
         >
           <span style={{ fontSize: "0.85rem", color: "#f87171" }}>
-            ⚠️ {verifyMsg || t("auth.verifyEmail.notVerified")}
+            <Ico e="⚠️" /> {verifyMsg || t("auth.verifyEmail.notVerified")}
           </span>
           <Btn
             variant="outline"
@@ -242,7 +243,7 @@ export default function ProfilePage() {
               <div style={{ marginTop: "1rem", padding: "1.2rem", background: "rgba(197,160,89,0.05)", border: "1px dashed var(--border-gold)", borderRadius: "4px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "0.6rem" }}>
                   <div>
-                    <h4 style={{ fontSize: "0.95rem", fontWeight: "800" }}>🤖 {t("auto.title")}</h4>
+                    <h4 style={{ fontSize: "0.95rem", fontWeight: "800" }}><Ico e="🤖" /> {t("auto.title")}</h4>
                     <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>{t("auto.desc")}</p>
                   </div>
                   <button
@@ -278,7 +279,7 @@ export default function ProfilePage() {
 
               {/* #6: Stablecoin payouts */}
               <div style={{ marginTop: "1rem", padding: "1.2rem", background: "rgba(96,165,250,0.04)", border: "1px dashed rgba(96,165,250,0.25)", borderRadius: "4px" }}>
-                <h4 style={{ fontSize: "0.95rem", fontWeight: "800", marginBottom: "0.2rem" }}>💸 {t("payout.title")}</h4>
+                <h4 style={{ fontSize: "0.95rem", fontWeight: "800", marginBottom: "0.2rem" }}><Ico e="💸" /> {t("payout.title")}</h4>
                 <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.8rem" }}>{t("payout.note")}</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                   <div>
@@ -303,7 +304,7 @@ export default function ProfilePage() {
             <Btn type="submit" disabled={saving}>
               {saving ? t("common.loading") : t("profile.save")}
             </Btn>
-            {saved && <span style={{ color: "#4ade80", fontSize: "0.85rem", fontWeight: "700" }}>✓ {t("profile.saved")}</span>}
+            {saved && <span style={{ color: "#4ade80", fontSize: "0.85rem", fontWeight: "700" }}><Ico e="✓" /> {t("profile.saved")}</span>}
           </div>
         </form>
 
@@ -315,7 +316,7 @@ export default function ProfilePage() {
                 {user.rating?.toFixed(1)}
               </div>
               <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                ⭐⭐⭐⭐⭐<br />{user.rating_count} reviews
+                <Ico e="⭐" /><Ico e="⭐" /><Ico e="⭐" /><Ico e="⭐" /><Ico e="⭐" /><br />{user.rating_count} reviews
               </div>
             </div>
           </div>

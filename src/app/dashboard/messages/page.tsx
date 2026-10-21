@@ -7,6 +7,7 @@ import { Badge, Btn, Loading, inputStyle } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
+import { Ico } from "@/components/Ico";
 
 type Thread = {
   match_id: string;
@@ -265,7 +266,7 @@ export default function MessagesPage() {
                 </div>
 
                 {!detail.has_contract && (
-                  <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>🛡️ {tx.guard}</p>
+                  <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "1rem" }}><Ico e="🛡️" /> {tx.guard}</p>
                 )}
 
                 {summary && (
@@ -303,7 +304,7 @@ export default function MessagesPage() {
                       </div>
                       <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", marginTop: 2, textAlign: m.mine ? "right" : "left" }}>
                         {new Date(m.created_at).toLocaleString(lang === "pl" ? "pl-PL" : "en-GB", { dateStyle: "short", timeStyle: "short" })}
-                        {m.flagged && ` · ⚠️ ${tx.flagged}`}
+                        {m.flagged && ` · ${tx.flagged}`}
                         {m.translated && !m.mine && " · AI"}
                       </div>
                     </div>
@@ -341,7 +342,7 @@ export default function MessagesPage() {
                     />
                     <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
                       <Btn disabled={busy || !draft.trim()} onClick={send}>{tx.send}</Btn>
-                      <Btn variant="ghost" disabled={busy} onClick={suggest}>✨ {tx.suggest}</Btn>
+                      <Btn variant="ghost" disabled={busy} onClick={suggest}><Ico e="✨" /> {tx.suggest}</Btn>
                     </div>
                   </div>
                 )}

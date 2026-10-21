@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
 import type { ListingContent, ListingHistoryItem, SourceFinderPlan, VideoScript } from "@/lib/types";
+import { Ico } from "@/components/Ico";
 
 const MARKETPLACES = ["generic", "shopify", "woocommerce", "allegro"];
 
@@ -161,7 +162,7 @@ export default function FactoryPage() {
       {listing && (
         <div className="premium-card" style={{ marginBottom: "2rem", border: "1px dashed var(--border-gold)" }}>
           <div style={{ fontSize: "0.75rem", fontWeight: "800", letterSpacing: "2px", color: "var(--accent-gold)", marginBottom: "1rem" }}>
-            🤖 {listing.model === "claude" ? "CLAUDE" : "RULES"}
+            <Ico e="🤖" /> {listing.model === "claude" ? "CLAUDE" : "RULES"}
           </div>
           <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t("factory.listingTitle")}</div>
           <div style={{ fontSize: "1.3rem", fontWeight: "800", marginBottom: "1rem" }}>{listing.title}</div>

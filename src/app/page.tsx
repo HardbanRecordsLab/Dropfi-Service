@@ -3,6 +3,7 @@
 import Link from "next/link";
 import PortalNav from "@/components/PortalNav";
 import Footer from "@/components/Footer";
+import { Ico } from "@/components/Ico";
 import { useLang } from "@/lib/i18n";
 import { Btn } from "@/components/ui";
 import { CATEGORIES, categoryLabel } from "@/lib/categories";
@@ -117,7 +118,7 @@ export default function Home() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "2rem" }}>
             {features.map((f) => (
               <div key={f.title} className="premium-card">
-                <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>{f.icon}</div>
+                <div style={{ fontSize: "2rem", marginBottom: "1rem", color: "var(--accent-gold)" }}><Ico e={f.icon} size="2rem" /></div>
                 <h3 style={{ fontSize: "1.15rem", marginBottom: "0.6rem" }}>{f.title}</h3>
                 <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", fontWeight: "300" }}>{f.desc}</p>
               </div>

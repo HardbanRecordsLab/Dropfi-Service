@@ -137,7 +137,7 @@ const DICT: Record<string, { pl: string; en: string }> = {
   "auto.minBudget": { pl: "Min. budżet zlecenia (PLN)", en: "Min. job budget (PLN)" },
 
   // Sprint 2: AI Onboarding (#14)
-  "gen.title": { pl: "⚡ Szybkie tworzenie z AI", en: "⚡ Quick create with AI" },
+  "gen.title": { pl: "Szybkie tworzenie z AI", en: "Quick create with AI" },
   "gen.desc": {
     pl: "Napisz 1 zdanie czego potrzebujesz — AI wypełni cały formularz.",
     en: "Write one sentence about what you need — AI fills the whole form.",

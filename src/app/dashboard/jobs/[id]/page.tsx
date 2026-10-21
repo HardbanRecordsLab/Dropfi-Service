@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
 import type { CopilotMessage, Job, Match, ScheduleSuggestion } from "@/lib/types";
+import { Ico } from "@/components/Ico";
 
 export default function JobDetailPage() {
   const params = useParams<{ id: string }>();
@@ -267,7 +268,7 @@ export default function JobDetailPage() {
           {job.ai_analysis && (
             <div className="premium-card" style={{ background: "rgba(197,160,89,0.04)", border: "1px dashed var(--border-gold)", marginBottom: "2rem" }}>
               <div style={{ fontSize: "0.75rem", fontWeight: "800", letterSpacing: "2px", color: "var(--accent-gold)", marginBottom: "1rem" }}>
-                🤖 AI ANALYSIS {job.ai_analysis.model === "claude" ? "· CLAUDE" : "· RULES"}
+                <Ico e="🤖" /> AI ANALYSIS {job.ai_analysis.model === "claude" ? "· CLAUDE" : "· RULES"}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1.2rem" }}>
                 <div>
@@ -293,7 +294,7 @@ export default function JobDetailPage() {
           {/* #3: AI fair price + negotiation (freelancer) */}
           {iAmFreelancerOnJob && myMatch?.status === "pending" && (
             <div className="premium-card" style={{ marginBottom: "2rem" }}>
-              <h3 style={{ fontSize: "1.15rem", fontFamily: "var(--font-playfair)", marginBottom: "0.8rem" }}>🤝 {t("nego.title")}</h3>
+              <h3 style={{ fontSize: "1.15rem", fontFamily: "var(--font-playfair)", marginBottom: "0.8rem" }}><Ico e="🤝" /> {t("nego.title")}</h3>
 
               {fairPrice ? (
                 <div style={{ marginBottom: "1.2rem", padding: "1rem", background: "rgba(197,160,89,0.05)", border: "1px dashed var(--border-gold)", borderRadius: "4px", fontSize: "0.85rem" }}>
@@ -311,7 +312,7 @@ export default function JobDetailPage() {
                     }
                   }}
                 >
-                  💡 {t("nego.fairPrice")}
+                  <Ico e="💡" /> {t("nego.fairPrice")}
                 </Btn>
               )}
 
@@ -343,7 +344,7 @@ export default function JobDetailPage() {
           {/* #1: AI Instant Interview (freelancer) */}
           {iAmFreelancerOnJob && myMatch?.status === "pending" && !interviewed && (job.interview_questions || []).length > 0 && (
             <div className="premium-card" style={{ marginBottom: "2rem" }}>
-              <h3 style={{ fontSize: "1.15rem", fontFamily: "var(--font-playfair)", marginBottom: "0.4rem" }}>🎙️ {t("interview.title")}</h3>
+              <h3 style={{ fontSize: "1.15rem", fontFamily: "var(--font-playfair)", marginBottom: "0.4rem" }}><Ico e="🎙️" /> {t("interview.title")}</h3>
               <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.2rem" }}>{t("interview.desc")}</p>
               <div style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
                 {(job.interview_questions || []).map((q, i) => (
@@ -369,7 +370,7 @@ export default function JobDetailPage() {
 
           {iAmFreelancerOnJob && interviewed && (
             <div className="premium-card" style={{ marginBottom: "2rem", border: "1px solid rgba(74,222,128,0.3)" }}>
-              <h3 style={{ fontSize: "1.15rem", fontFamily: "var(--font-playfair)", marginBottom: "0.6rem" }}>🎙️ {t("interview.title")} — {t("interview.done")}</h3>
+              <h3 style={{ fontSize: "1.15rem", fontFamily: "var(--font-playfair)", marginBottom: "0.6rem" }}><Ico e="🎙️" /> {t("interview.title")} — {t("interview.done")}</h3>
               <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                 <div style={{ fontSize: "2.4rem", fontWeight: "800" }} className="gold-gradient-text">
                   {myMatch?.interview_score}/100
@@ -385,7 +386,7 @@ export default function JobDetailPage() {
           {/* #2: Deliverables + AI QA */}
           {hasContract && (
             <div className="premium-card" style={{ marginBottom: "2rem" }}>
-              <h3 style={{ fontSize: "1.15rem", fontFamily: "var(--font-playfair)", marginBottom: "0.4rem" }}>📦 {t("deliver.title")}</h3>
+              <h3 style={{ fontSize: "1.15rem", fontFamily: "var(--font-playfair)", marginBottom: "0.4rem" }}><Ico e="📦" /> {t("deliver.title")}</h3>
               <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.2rem" }}>{t("deliver.desc")}</p>
 
               {job.deliverable_report ? (
@@ -445,7 +446,7 @@ export default function JobDetailPage() {
           {/* #F5: AI Co-Pilot (participants only) */}
           {(isOwner || iAmFreelancerOnJob) && (
             <div className="premium-card" style={{ marginBottom: "2rem" }}>
-              <h3 style={{ fontSize: "1.15rem", fontFamily: "var(--font-playfair)", marginBottom: "0.4rem" }}>🧭 {t("copilot.title")}</h3>
+              <h3 style={{ fontSize: "1.15rem", fontFamily: "var(--font-playfair)", marginBottom: "0.4rem" }}><Ico e="🧭" /> {t("copilot.title")}</h3>
               <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.2rem" }}>{t("copilot.desc")}</p>
 
               {copilotHistory.length === 0 ? (
@@ -454,8 +455,8 @@ export default function JobDetailPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem", marginBottom: "1.2rem", maxHeight: "260px", overflowY: "auto" }}>
                   {copilotHistory.map((m, i) => (
                     <div key={i}>
-                      <div style={{ fontSize: "0.82rem", fontWeight: "700", color: "var(--text-secondary)" }}>❓ {m.question}</div>
-                      <div style={{ fontSize: "0.85rem", color: "var(--text-primary)", marginTop: "0.2rem" }}>🤖 {m.answer}</div>
+                      <div style={{ fontSize: "0.82rem", fontWeight: "700", color: "var(--text-secondary)" }}><Ico e="❓" /> {m.question}</div>
+                      <div style={{ fontSize: "0.85rem", color: "var(--text-primary)", marginTop: "0.2rem" }}><Ico e="🤖" /> {m.answer}</div>
                     </div>
                   ))}
                 </div>
@@ -489,7 +490,7 @@ export default function JobDetailPage() {
 
           {matches.length === 0 ? (
             <div className="premium-card" style={{ textAlign: "center", padding: "3rem" }}>
-              <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>🤖</div>
+              <div style={{ fontSize: "2rem", marginBottom: "1rem" }}><Ico e="🤖" /></div>
               <p style={{ color: "var(--text-secondary)" }}>{t("jobs.noMatches")}</p>
               {isOwner && (
                 <div style={{ marginTop: "1.5rem" }}>
@@ -517,7 +518,7 @@ export default function JobDetailPage() {
                         {m.freelancer?.first_name} {m.freelancer?.last_name}
                       </div>
                       <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                        {m.freelancer?.location || ""} · ⭐ {m.freelancer?.rating ?? "—"} ({m.freelancer?.rating_count ?? 0})
+                        {m.freelancer?.location || ""} · <Ico e="⭐" /> {m.freelancer?.rating ?? "—"} ({m.freelancer?.rating_count ?? 0})
                       </div>
                     </div>
                     <Badge color={m.status === "accepted" ? "#4ade80" : m.status === "rejected" ? "#f87171" : "var(--accent-gold)"}>
@@ -537,7 +538,7 @@ export default function JobDetailPage() {
                   {isOwner && (
                     schedules[m.id] ? (
                       <div style={{ marginTop: "0.8rem", padding: "0.7rem 0.9rem", background: "rgba(96,165,250,0.05)", border: "1px dashed rgba(96,165,250,0.25)", borderRadius: "4px", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
-                        🕐 {schedules[m.id].overlap_hours}h {t("sched.overlap")} · {schedules[m.id].hours_apart}h {t("sched.apart")}
+                        <Ico e="🕐" /> {schedules[m.id].overlap_hours}h {t("sched.overlap")} · {schedules[m.id].hours_apart}h {t("sched.apart")}
                         <div style={{ marginTop: "0.2rem", color: "var(--text-muted)" }}>
                           {schedules[m.id].mode === "live-overlap" && t("sched.live")}
                           {schedules[m.id].mode === "handoff" && t("sched.handoff")}
@@ -549,7 +550,7 @@ export default function JobDetailPage() {
                         onClick={() => loadSchedule(m.id)}
                         style={{ marginTop: "0.6rem", fontSize: "0.72rem", color: "var(--accent-gold)", fontWeight: "700" }}
                       >
-                        🕐 {t("sched.title")}
+                        <Ico e="🕐" /> {t("sched.title")}
                       </button>
                     )
                   )}

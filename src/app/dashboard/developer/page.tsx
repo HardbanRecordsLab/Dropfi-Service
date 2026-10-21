@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
 import type { ApiKeyItem, NewApiKey } from "@/lib/types";
+import { Ico } from "@/components/Ico";
 
 export default function DeveloperPage() {
   const { user } = useAuth();
@@ -90,7 +91,7 @@ export default function DeveloperPage() {
 
         {newKey && (
           <div style={{ marginTop: "1.5rem", padding: "1.2rem", background: "rgba(197,160,89,0.06)", border: "1px dashed var(--border-gold)", borderRadius: "4px" }}>
-            <div style={{ fontSize: "0.78rem", color: "var(--accent-gold)", fontWeight: "700", marginBottom: "0.5rem" }}>⚠️ {t("dev.newKeyWarning")}</div>
+            <div style={{ fontSize: "0.78rem", color: "var(--accent-gold)", fontWeight: "700", marginBottom: "0.5rem" }}><Ico e="⚠️" /> {t("dev.newKeyWarning")}</div>
             <code style={{ display: "block", wordBreak: "break-all", fontSize: "0.85rem", color: "#fff", background: "var(--bg-tertiary)", padding: "0.8rem", borderRadius: "4px" }}>
               {newKey.key}
             </code>

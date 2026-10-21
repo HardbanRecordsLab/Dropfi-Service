@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
 import { API, getErrorMessage } from "@/lib/api";
 import { CATEGORIES, categoryLabel } from "@/lib/categories";
+import { Ico } from "@/components/Ico";
 
 export default function NewJobPage() {
   const router = useRouter();
@@ -123,7 +124,7 @@ export default function NewJobPage() {
           </Btn>
         </div>
         {generated && (
-          <p style={{ marginTop: "0.8rem", fontSize: "0.82rem", color: "#4ade80", fontWeight: "600" }}>✓ {t("gen.used")}</p>
+          <p style={{ marginTop: "0.8rem", fontSize: "0.82rem", color: "#4ade80", fontWeight: "600" }}><Ico e="✓" /> {t("gen.used")}</p>
         )}
       </div>
 
