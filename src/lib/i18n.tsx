@@ -753,6 +753,11 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang;
+    if (document.title.startsWith("DROPIFY |")) {
+      document.title = lang === "pl"
+        ? "DROPIFY | Platforma AI do dopasowania zleceń dla freelancerów i firm"
+        : "DROPIFY | AI Job Matching Platform for Freelancers & Businesses";
+    }
   }, [lang]);
 
   const setLang = useCallback((l: Lang) => {
