@@ -4,11 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useLang } from "@/lib/i18n";
+import { wpUrl } from "@/lib/langPref";
 import LangSwitch from "./LangSwitch";
 
 export default function DashShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const pathname = usePathname();
 
   if (!user) return <>{children}</>;
@@ -102,7 +103,7 @@ export default function DashShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <a href="https://hardbanrecordslab.online/" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+          <a href={wpUrl("/", lang)} style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
             ← hardbanrecordslab.online
           </a>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

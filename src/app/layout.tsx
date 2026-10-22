@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "DROPIFY | AI Job Matching Platform for Freelancers & Businesses",
   description:
-    "Automatyczne dopasowanie zleceń do najlepszych freelancerów dzięki AI — e-commerce, dropshipping, marketing, nieruchomości, muzyka i więcej. Automatic AI job matching for freelancers across e-commerce, dropshipping, marketing, real estate, music production and more. Polski + English.",
+    "Automatic AI job matching for freelancers and businesses: e-commerce, dropshipping, marketing, real estate, music and more. Honest 8% flat fee, no hidden costs.",
   manifest: "/manifest.webmanifest",
   alternates: { canonical: "/" },
   // favicon.ico / icon.png / apple-icon.png in src/app/ are auto-detected by Next.
@@ -30,8 +30,6 @@ export const metadata: Metadata = {
     "AI matching",
     "e-commerce",
     "marketplace",
-    "zlecenia",
-    "dopasowanie zleceń",
     "real estate marketing",
     "music production",
     "white-label marketplace API",
@@ -41,7 +39,7 @@ export const metadata: Metadata = {
     title: "DROPIFY | AI Job Matching Platform",
     description: "Global marketplace connecting jobs with top freelancers automatically.",
     type: "website",
-    locale: "pl_PL",
+    locale: "en_US",
     url: SITE_URL,
     siteName: "DROPIFY",
     images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "DROPIFY" }],
@@ -64,7 +62,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl" className={`${outfit.variable} ${playfair.variable}`}>
+    <html lang="en" className={`${outfit.variable} ${playfair.variable}`}>
       <body style={{ fontFamily: "var(--font-outfit), sans-serif" }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://hardbanrecordslab.online/#org","name":"HardbanRecords Lab","url":"https://hardbanrecordslab.online/","logo":{"@type":"ImageObject","url":"https://dropify.hardbanrecordslab.online/icon-512.png"}},{"@type":"WebApplication","name":"DROPIFY","url":"https://dropify.hardbanrecordslab.online/","image":"https://dropify.hardbanrecordslab.online/og-image.png","logo":"https://dropify.hardbanrecordslab.online/icon-512.png","applicationCategory":"BusinessApplication","operatingSystem":"Web","publisher":{"@id":"https://hardbanrecordslab.online/#org"}}]}) }} />
         <LangProvider>

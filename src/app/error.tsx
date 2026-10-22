@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Btn } from "@/components/ui";
+import { useLang } from "@/lib/i18n";
 
 export default function Error({
   error,
@@ -10,6 +11,7 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useLang();
   useEffect(() => {
     console.error("Application error:", error);
   }, [error]);
@@ -37,15 +39,15 @@ export default function Error({
           !
         </div>
         <h1 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>
-          Coś poszło nie tak
+          {t("err.title")}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", marginBottom: "2rem" }}>
-          Wystąpił nieoczekiwany błąd. Spróbuj ponownie lub wróć na stronę główną.
+          {t("err.desc")}
         </p>
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
-          <Btn onClick={reset}>Spróbuj ponownie</Btn>
+          <Btn onClick={reset}>{t("err.retry")}</Btn>
           <Btn variant="outline" onClick={() => (window.location.href = "/")}>
-            Strona główna
+            {t("err.home")}
           </Btn>
         </div>
         {error.digest && (

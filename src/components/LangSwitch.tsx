@@ -6,8 +6,8 @@ import type { Lang } from "@/lib/i18n";
 export default function LangSwitch() {
   const { lang, setLang } = useLang();
   const langs: { code: Lang; label: string }[] = [
-    { code: "pl", label: "PL" },
     { code: "en", label: "EN" },
+    { code: "pl", label: "PL" },
   ];
   return (
     <div

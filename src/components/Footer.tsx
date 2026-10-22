@@ -1,10 +1,11 @@
 "use client";
 
 import { useLang } from "@/lib/i18n";
+import { wpUrl } from "@/lib/langPref";
 import Link from "next/link";
 
 export default function Footer() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   return (
     <footer
       style={{
@@ -33,7 +34,7 @@ export default function Footer() {
             Kamil Skomra, HardbanRecords Lab · <a href="mailto:contact@hardbanrecordslab.online" style={{ color: "var(--gold)" }}>contact@hardbanrecordslab.online</a>
           </p>
           <p style={{ fontSize: "0.78rem", marginTop: "0.5rem" }}>
-            <a href="https://hardbanrecordslab.online/" style={{ color: "var(--gold)" }}>← hardbanrecordslab.online</a>
+            <a href={wpUrl("/", lang)} style={{ color: "var(--gold)" }}>← hardbanrecordslab.online</a>
           </p>
         </div>
         <div>

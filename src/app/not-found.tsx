@@ -4,8 +4,10 @@ import Link from "next/link";
 import PortalNav from "@/components/PortalNav";
 import Footer from "@/components/Footer";
 import { Btn } from "@/components/ui";
+import { useLang } from "@/lib/i18n";
 
 export default function NotFound() {
+  const { t } = useLang();
   return (
     <main style={{ minHeight: "100vh" }}>
       <PortalNav />
@@ -30,13 +32,13 @@ export default function NotFound() {
             404
           </div>
           <h1 style={{ fontSize: "1.8rem", marginBottom: "1rem" }}>
-            Strona nie znaleziona
+            {t("nf.title")}
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "1rem", marginBottom: "2.5rem" }}>
-            Podany adres nie istnieje lub został przeniesiony. Sprawdź URL lub wróć na stronę główną.
+            {t("nf.desc")}
           </p>
           <Link href="/">
-            <Btn>Wróć na stronę główną</Btn>
+            <Btn>{t("nf.back")}</Btn>
           </Link>
         </div>
       </section>

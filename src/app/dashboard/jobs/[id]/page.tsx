@@ -591,7 +591,7 @@ export default function JobDetailPage() {
                     <div style={{ marginTop: "0.8rem", padding: "0.8rem", background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.25)", borderRadius: "4px" }}>
                       <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
                         {t("nego.proposed")}: <b className="gold-gradient-text">{m.price_proposal.toLocaleString()} {t("common.currency")}</b>{" "}
-                        (budżet: {job.budget.toLocaleString()} {t("common.currency")})
+                        ({t("nego.budget")}: {job.budget.toLocaleString()} {t("common.currency")})
                       </div>
                       <div style={{ display: "flex", gap: "0.6rem" }}>
                         <Btn onClick={async () => { try { await API.confirmPrice(m.id); await reload(); } catch (err) { setMsg(getErrorMessage(err)); } }} disabled={busy}>

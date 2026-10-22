@@ -184,8 +184,8 @@ def generate_listing_offer(
     if profile.get("is_template"):
         raise HTTPException(
             status_code=409,
-            detail="Profil agencji (agency_profile.json) nie jest jeszcze uzupełniony — uzupełnij "
-                   "dane HRL Digital zanim wygenerujesz ofertę.",
+            detail="The agency profile (agency_profile.json) is not filled in yet — fill in the "
+                   "HRL Digital details before generating an offer.",
         )
 
     result = generate_offer(row, profile)

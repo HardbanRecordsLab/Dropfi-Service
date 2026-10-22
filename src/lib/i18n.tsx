@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+import { resolveInitialLang, writeLangCookie } from "./langPref";
+
 export type Lang = "pl" | "en";
 
 const DICT: Record<string, { pl: string; en: string }> = {
@@ -710,6 +712,25 @@ const DICT: Record<string, { pl: string; en: string }> = {
   "footer.legal": { pl: "Prawne", en: "Legal" },
   "footer.regulamin": { pl: "Regulamin", en: "Terms of Service" },
   "footer.privacy": { pl: "Polityka prywatności", en: "Privacy Policy" },
+
+  // Error / 404 / legal summaries / misc gaps
+  "err.title": { pl: "Coś poszło nie tak", en: "Something went wrong" },
+  "err.desc": { pl: "Wystąpił nieoczekiwany błąd. Spróbuj ponownie lub wróć na stronę główną.", en: "An unexpected error occurred. Try again or go back to the home page." },
+  "err.retry": { pl: "Spróbuj ponownie", en: "Try again" },
+  "err.home": { pl: "Strona główna", en: "Home page" },
+  "nf.title": { pl: "Strona nie znaleziona", en: "Page not found" },
+  "nf.desc": { pl: "Podany adres nie istnieje lub został przeniesiony. Sprawdź URL lub wróć na stronę główną.", en: "This address does not exist or has been moved. Check the URL or go back to the home page." },
+  "nf.back": { pl: "Wróć na stronę główną", en: "Back to the home page" },
+  "legal.effective": { pl: "Obowiązuje od 11 października 2026 r. · Kamil Skomra, HardbanRecords Lab", en: "Effective from 11 October 2026 · Kamil Skomra, HardbanRecords Lab" },
+  "legal.intro": { pl: "DROPIFY jest częścią HardbanRecords Lab. Obowiązują wspólne dokumenty całej platformy. Najważniejsze zasady dotyczące tej aplikacji:", en: "DROPIFY is part of HardbanRecords Lab. The shared documents of the whole platform apply. The key rules for this app:" },
+  "legal.contact": { pl: "Sprawy prawne, reklamacje i dane osobowe: legal@hardbanrecordslab.online", en: "Legal matters, complaints and personal data: legal@hardbanrecordslab.online" },
+  "legal.terms": { pl: "Regulamin", en: "Terms" },
+  "legal.privacy": { pl: "Polityka prywatności", en: "Privacy Policy" },
+  "legal.cookies": { pl: "Polityka cookies", en: "Cookie Policy" },
+  "legal.note": { pl: "Wersja angielska to tłumaczenie poglądowe; rozstrzyga wersja polska.", en: "The English version is a courtesy translation; the Polish version prevails." },
+  "freelancers.search": { pl: "Szukaj po umiejętnościach…", en: "Search by skills…" },
+  "nego.budget": { pl: "budżet", en: "budget" },
+  "home.back": { pl: "← hardbanrecordslab.online", en: "← hardbanrecordslab.online" },
 };
 
 const LangContext = createContext<{
@@ -717,33 +738,31 @@ const LangContext = createContext<{
   setLang: (l: Lang) => void;
   t: (key: string) => string;
 }>({
-  lang: "pl",
+  lang: "en",
   setLang: () => {},
   t: (key: string) => key,
 });
 
 export function LangProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("pl");
+  // Angielski jest językiem głównym; polski przez przełącznik, ?lang=pl albo wspólne ciasteczko hrl_lang.
+  const [lang, setLangState] = useState<Lang>("en");
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      const saved = localStorage.getItem("dropify_lang") as Lang | null;
-      if (saved === "pl" || saved === "en") {
-        if (active) setLangState(saved);
-      } else {
-        const nav = navigator.language?.toLowerCase() || "";
-        if (active) setLangState(nav.startsWith("pl") ? "pl" : "en");
-      }
-    })();
-    return () => {
-      active = false;
-    };
+    setLangState(resolveInitialLang("dropify_lang"));
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
-    localStorage.setItem("dropify_lang", l);
+    try {
+      localStorage.setItem("dropify_lang", l);
+    } catch {
+      /* ignore */
+    }
+    writeLangCookie(l);
   }, []);
 
   const t = useCallback(

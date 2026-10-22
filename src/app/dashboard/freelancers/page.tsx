@@ -72,7 +72,7 @@ export default function FreelancersPage() {
 
       <input
         style={{ ...inputStyle, maxWidth: "360px", marginBottom: "2.5rem" }}
-        placeholder="Szukaj po umiejętnościach…"
+        placeholder={t("freelancers.search")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
