@@ -35,7 +35,7 @@ def _compute_anomalies(metrics: dict, db) -> list[str]:
     revenue = metrics.get("revenue", 0)
     if daily_avg > 0 and revenue < daily_avg * 0.5:
         anomalies.append(
-            f"Revenue drop: today {revenue:.2f} PLN vs 7-day avg {daily_avg:.2f} PLN ({(1 - revenue / daily_avg) * 100:.0f}% below)"
+            f"Revenue drop: today {revenue:.2f} USD vs 7-day avg {daily_avg:.2f} USD ({(1 - revenue / daily_avg) * 100:.0f}% below)"
         )
 
     # 2. Match acceptance conversion
@@ -130,7 +130,7 @@ def daily_summary():
             f"Accepted: {accepted_today}<br/>"
             f"Contracts: {contracts_today}<br/>"
             f"Jobs completed: {completed_today}<br/>"
-            f"Revenue (fees): {float(revenue_today):.2f} PLN<br/>"
+            f"Revenue (fees): {float(revenue_today):.2f} USD<br/>"
             f"Referral commissions paid: {commissions_today}<br/>"
             f"New users: {new_users}<br/>"
             f"Errors: {errors}<br/><br/>"
@@ -204,7 +204,7 @@ def process_referral_commissions():
                         db,
                         l1.id,
                         "Referral commission earned!",
-                        f"You earned {amount1:.2f} PLN from a contract of {client.display_name}. (2% level-1 referral)",
+                        f"You earned {amount1:.2f} USD from a contract of {client.display_name}. (2% level-1 referral)",
                         "money",
                         l1.email,
                         "Referral commission earned!",
@@ -240,7 +240,7 @@ def process_referral_commissions():
                                 db,
                                 l2.id,
                                 "Referral commission earned (level 2)!",
-                                f"You earned {amount2:.2f} PLN from a second-level referral contract. (1% level-2)",
+                                f"You earned {amount2:.2f} USD from a second-level referral contract. (1% level-2)",
                                 "money",
                                 l2.email,
                                 "Referral commission earned!",
@@ -289,7 +289,7 @@ def auto_release_milestones():
                     db,
                     freelancer.id,
                     "Milestone auto-released",
-                    f"'{milestone.title}' ({milestone.amount:.2f} PLN) was released automatically after 48h — "
+                    f"'{milestone.title}' ({milestone.amount:.2f} USD) was released automatically after 48h — "
                     "the client did not object.",
                     "money",
                     freelancer.email,
@@ -326,7 +326,7 @@ def process_payouts():
                     db,
                     freelancer.id,
                     "Payout sent",
-                    f"{payment.net_amount:.2f} PLN paid out via {method}"
+                    f"{payment.net_amount:.2f} USD paid out via {method}"
                     + (f" ({address})" if method == "stablecoin" and address else "")
                     + ". Funds arrive in minutes (stablecoin) or 1-3 days (bank).",
                     "money",

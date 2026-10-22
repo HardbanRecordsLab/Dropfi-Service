@@ -9,20 +9,20 @@ from __future__ import annotations
 import time
 import httpx
 
-# Approximate PLN-based cross rates (snapshot, refresh periodically).
-RATES_FROM_PLN = {
-    "PLN": 1.0,
-    "EUR": 0.23,
-    "USD": 0.25,
-    "GBP": 0.20,
-    "UAH": 10.4,
-    "CZK": 5.7,
-    "SEK": 2.6,
-    "INR": 23.0,
-    "AUD": 0.38,
-    "CAD": 0.35,
-    "SGD": 0.33,
-    "CHF": 0.22,
+# Approximate USD-based cross rates, 1 USD = rate * CUR (snapshot, refresh periodically).
+RATES_FROM_USD = {
+    "USD": 1.0,
+    "PLN": 3.9,
+    "EUR": 0.92,
+    "GBP": 0.79,
+    "UAH": 41.6,
+    "CZK": 22.8,
+    "SEK": 10.4,
+    "INR": 88.0,
+    "AUD": 1.52,
+    "CAD": 1.4,
+    "SGD": 1.32,
+    "CHF": 0.88,
 }
 
 CURRENCY_SYMBOL = {
@@ -54,7 +54,7 @@ def _normalize_live_rates(payload: dict) -> dict | None:
     if not isinstance(rates, dict):
         return None
 
-    normalized = {"PLN": 1.0}
+    normalized = {"USD": 1.0}
     for code, value in rates.items():
         try:
             numeric = float(value)
@@ -74,7 +74,7 @@ def _fetch_live_rates() -> tuple[dict | None, str]:
         return _cached_rates, _cached_rates_source
 
     try:
-        response = httpx.get("https://api.frankfurter.app/latest?from=PLN", timeout=5.0)
+        response = httpx.get("https://api.frankfurter.app/latest?from=USD", timeout=5.0)
         response.raise_for_status()
         normalized = _normalize_live_rates(response.json())
         if normalized:
@@ -84,18 +84,26 @@ def _fetch_live_rates() -> tuple[dict | None, str]:
             return normalized, "live"
     except Exception:
         pass
-    return RATES_FROM_PLN, "fallback"
+    return RATES_FROM_USD, "fallback"
 
 
-def convert(amount_pln: float, target: str) -> float:
+def convert(amount_usd: float, target: str) -> float:
     rates, _ = _fetch_live_rates()
-    rate = rates.get((target or "PLN").upper(), 1.0)
-    return round(amount_pln * rate, 2)
+    rate = rates.get((target or "USD").upper(), 1.0)
+    return round(amount_usd * rate, 2)
+
+
+def to_usd(amount: float, code: str | None, rates: dict | None = None) -> float | None:
+    """Amount in `code` (PLN when empty) -> USD; None when the currency is unknown."""
+    if rates is None:
+        rates, _ = _fetch_live_rates()
+    rate = (rates or {}).get((code or "PLN").upper())
+    return amount / rate if rate else None
 
 
 def rates() -> dict:
     live_rates, source = _fetch_live_rates()
-    return {"base": "PLN", "rates": live_rates, "symbols": CURRENCY_SYMBOL, "source": source}
+    return {"base": "USD", "rates": live_rates, "symbols": CURRENCY_SYMBOL, "source": source}
 
 
 def tax_hint(country_code: str) -> dict:

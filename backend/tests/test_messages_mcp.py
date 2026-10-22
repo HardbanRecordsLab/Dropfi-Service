@@ -118,5 +118,5 @@ def test_mcp_server_full_hiring_loop(client):
     assert stolen["result"]["isError"] is True
 
     fees = _mcp(client, key, "tools/call", {"name": "estimate_fees", "arguments": {"amount": 1000}}).json()
-    assert fees["result"]["structuredContent"]["saving_vs_upwork_pln"] > 0
+    assert fees["result"]["structuredContent"]["saving_vs_upwork_usd"] > 0
     assert _mcp(client, key, "nope").json()["error"]["code"] == -32601

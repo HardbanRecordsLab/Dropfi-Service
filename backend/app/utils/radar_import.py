@@ -1,6 +1,6 @@
 """Turn Portal Radar leads into live DROPIFY jobs.
 
-- Budgets are converted to PLN (connectors keep non-PLN amounts only in
+- Budgets are converted to USD (connectors keep non-PLN amounts only in
   ``budget_text`` + ``currency``; the old import used a flat 500 PLN for them).
 - ``top_up_open_jobs`` keeps the marketplace at a minimum number of open jobs,
   preferring project-type sources (freelance gigs) over full-time job boards,
@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import ExternalListing, Job, Match, User
-from app.utils.currency import _fetch_live_rates
+from app.utils.currency import _fetch_live_rates, to_usd
 from app.utils.jobs import create_job_and_match
 from app.utils.security import hash_password, make_referral_code
 
@@ -33,8 +33,8 @@ SOURCE_PRIORITY = [
     "freelancer", "freelancehunt", "wpzlecenia", "useme",
     "weworkremotely", "remoteok", "remotive", "jobicy", "arbeitnow", "hn_hiring",
 ]
-DEFAULT_BUDGET_PLN = 500.0
-MIN_BUDGET_PLN = 50.0
+DEFAULT_BUDGET_USD = 130.0
+MIN_BUDGET_USD = 13.0
 _SYMBOLS = {"€": "EUR", "£": "GBP", "₹": "INR", "₴": "UAH", "zł": "PLN", "$": "USD"}
 _NUM_RE = re.compile(r"\d[\d\s.,]*")
 
@@ -74,34 +74,36 @@ def _parse_amount(token: str) -> float | None:
         return None
 
 
-def budget_to_pln(row: ExternalListing) -> tuple[float, bool]:
-    """Return (budget in PLN, known). `known=False` means a default was used."""
-    if row.budget_max or row.budget_min:  # connectors only fill these when already PLN
-        return float(row.budget_max or row.budget_min), True
+def budget_to_usd(row: ExternalListing) -> tuple[float, bool]:
+    """Return (budget in USD, known). `known=False` means a default was used."""
+    rates, _ = _fetch_live_rates()
+    if row.budget_max or row.budget_min:  # connectors fill these in the row currency (PLN when empty)
+        usd = to_usd(float(row.budget_max or row.budget_min), row.currency, rates)
+        if usd is not None:
+            return round(max(usd, MIN_BUDGET_USD), 0), True
     text = row.budget_text or ""
     amounts = [a for a in (_parse_amount(m.group(0)) for m in _NUM_RE.finditer(text)) if a]
     if not amounts:
-        return DEFAULT_BUDGET_PLN, False
+        return DEFAULT_BUDGET_USD, False
     code = (row.currency or "").upper()
     if not code:
         code = next((c for sym, c in _SYMBOLS.items() if sym in text), "USD")
-    rates, _ = _fetch_live_rates()
-    rate = (rates or {}).get(code)  # 1 PLN = rate * CUR
+    rate = (rates or {}).get(code)  # 1 USD = rate * CUR
     if not rate:
-        return DEFAULT_BUDGET_PLN, False
+        return DEFAULT_BUDGET_USD, False
     lo, hi = min(amounts), max(amounts)
     # Freelancer.com allows junk ranges like "$10 - $100000"; above a 10x spread,
     # take a realistic point near the low end instead of the ceiling.
     amount = hi if hi <= lo * 10 else min(hi, lo * 3)
-    pln = amount / rate
-    return round(max(pln, MIN_BUDGET_PLN), 0), True
+    usd = amount / rate
+    return round(max(usd, MIN_BUDGET_USD), 0), True
 
 
 def import_listing_row(db: Session, row: ExternalListing, bot: User | None = None) -> Job:
     bot = bot or radar_bot(db)
-    budget, known = budget_to_pln(row)
+    budget, known = budget_to_usd(row)
     budget_line = (
-        f"Budżet źródłowy / Source budget: {row.budget_text} (≈ {budget:.0f} PLN)" if row.budget_text and known
+        f"Budżet źródłowy / Source budget: {row.budget_text} (≈ {budget:.0f} USD)" if row.budget_text and known
         else "Budżet do uzgodnienia / Budget to be agreed" if not known else ""
     )
     description = (

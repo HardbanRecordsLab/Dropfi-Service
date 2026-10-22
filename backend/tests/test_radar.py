@@ -79,6 +79,9 @@ def test_one_broken_source_does_not_abort_others(client, monkeypatch):
 
 
 def test_import_listing_creates_job_and_matches(client, monkeypatch):
+    from app.utils import radar_import
+    # connectors store budget_max in the row currency (PLN by default); the marketplace budget is USD
+    monkeypatch.setattr(radar_import, "_fetch_live_rates", lambda: ({"USD": 1.0, "PLN": 4.0}, "test"))
     make_freelancer(client, "Product and fashion photographer, retouching, white background",
                     ["photography", "retouching"], location="Warsaw")
 
@@ -100,7 +103,7 @@ def test_import_listing_creates_job_and_matches(client, monkeypatch):
 
     job = client.get(f"/api/jobs/{job_id}").json()
     assert job["external_source"] == "remoteok"
-    assert job["budget"] == 2000.0
+    assert job["budget"] == 500.0
 
     # re-import is blocked
     again = client.post(f"/api/radar/listings/{row['id']}/import", headers=auth_headers(admin))

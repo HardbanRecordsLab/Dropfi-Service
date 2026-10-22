@@ -61,7 +61,7 @@ def create_contract(db: Session, match: Match, freelancer: User, autopilot: bool
         db,
         contract.client_id,
         "Freelancer accepted your job" if not autopilot else "Autopilot accepted your job",
-        f"{freelancer.display_name} accepted '{job.title}'. Contract created for {amount:.2f} PLN (fee {platform_fee:.2f} PLN)."
+        f"{freelancer.display_name} accepted '{job.title}'. Contract created for {amount:.2f} USD (fee {platform_fee:.2f} USD)."
         + (" [AI Autopilot]" if autopilot else ""),
         "match",
     )
@@ -195,7 +195,7 @@ def propose_price(
         db,
         job.client_id,
         f"Price proposal from {user.display_name}",
-        f"Freelancer proposes {amount:.2f} PLN for '{job.title}' (budget: {job.budget:.2f} PLN).",
+        f"Freelancer proposes {amount:.2f} USD for '{job.title}' (budget: {job.budget:.2f} USD).",
         "price",
     )
     return _match_payload(db, match)
@@ -225,7 +225,7 @@ def confirm_price(
         db,
         freelancer.id,
         "Price proposal accepted!",
-        f"Client agreed to {match.agreed_price:.2f} PLN for '{job.title}'. You can now accept the match.",
+        f"Client agreed to {match.agreed_price:.2f} USD for '{job.title}'. You can now accept the match.",
         "price",
     )
     return _match_payload(db, match)

@@ -206,13 +206,13 @@ ANALYSIS_PROMPT = """You are an expert job classifier for a multi-industry freel
   "skills": ["3-5 required skills, lowercase english"],
   "urgency": "critical|high|medium|low",
   "experience_level": "junior|mid|senior",
-  "fair_price": estimated fair price in PLN as a number,
+  "fair_price": estimated fair price in USD as a number,
   "key_requirements": "1-2 sentence summary"
 }}
 
 Job title: {title}
 Description: {description}
-Budget: {budget} PLN
+Budget: {budget} USD
 Deadline: {deadline}
 Location: {location}
 """
@@ -400,7 +400,7 @@ def generate_job_draft(idea: str) -> dict:
             "Return JSON only: {\"title\": \"short clear title\", \"description\": \"2-4 sentence description\", "
             "\"category\": \"one of: Photography, Coding, Design, Writing, Marketing, Video & Animation, "
             "E-commerce, Translation, Consulting\", \"required_skills\": [\"3-5 skills\"], "
-            "\"suggested_budget\": number in PLN, \"suggested_deadline_days\": number}",
+            "\"suggested_budget\": number in USD, \"suggested_deadline_days\": number}",
             max_tokens=500,
         )
         if data and data.get("title"):
@@ -611,7 +611,7 @@ def _pick_relevant_service(text: str, services: list[dict]) -> dict:
     """Best-matching service by keyword overlap with the listing's title +
     description — NOT the cheapest service in the profile. An agency's price
     list typically spans small and large offerings (e.g. a monthly retainer
-    vs. a full system build); picking by lowest price_from_pln would quote a
+    vs. a full system build); picking by lowest price_from_usd would quote a
     "strona WWW" rate on a lead that's actually asking for something else
     entirely. Falls back to the first listed service if nothing matches."""
     if not services:
@@ -647,12 +647,12 @@ def generate_offer(listing, profile: dict) -> dict:
 
     services = profile.get("services", [])
     service = _pick_relevant_service(f"{title} {description}", services)
-    base_price = service.get("price_from_pln") or 0
+    base_price = service.get("price_from_usd") or 0
     portfolio = profile.get("portfolio", [])
 
     if llm_enabled():
         services_str = "; ".join(
-            f"{s.get('name', '')} (od {s.get('price_from_pln', 0)} PLN, {s.get('typical_timeline', '')})"
+            f"{s.get('name', '')} (od {s.get('price_from_usd', 0)} USD, {s.get('typical_timeline', '')})"
             for s in services
         ) or "brak zdefiniowanych usług"
         portfolio_str = "; ".join(
@@ -679,7 +679,7 @@ def generate_offer(listing, profile: dict) -> dict:
             "<<<LISTING_END>>>\n\n"
             f"Napisz w języku {'polskim' if is_polish else 'angielskim'} (język ogłoszenia). Zwróć wyłącznie JSON: "
             '{"offer_text": "maks. 150 słów, odwołuje się do konkretów z ogłoszenia, proponuje konkretny '
-            'pierwszy krok, zero zmyślonych faktów", "price_min": liczba PLN, "price_max": liczba PLN, '
+            'pierwszy krok, zero zmyślonych faktów", "price_min": liczba USD, "price_max": liczba USD, '
             '"price_rationale": "1 zdanie uzasadnienia", "questions": ["2-3 pytania doprecyzowujące do klienta"]}'
         )
         data = _llm_json(prompt, max_tokens=700)
@@ -719,9 +719,9 @@ def generate_offer(listing, profile: dict) -> dict:
         "price_min": price_min,
         "price_max": price_max,
         "price_rationale": (
-            f"Oparte na cenniku usługi '{service.get('name', '')}' (od {service.get('price_from_pln', 0)} PLN)"
+            f"Oparte na cenniku usługi '{service.get('name', '')}' (od {service.get('price_from_usd', 0)} USD)"
             if is_polish else
-            f"Based on the '{service.get('name', '')}' service price list (from {service.get('price_from_pln', 0)} PLN)"
+            f"Based on the '{service.get('name', '')}' service price list (from {service.get('price_from_usd', 0)} USD)"
         ),
         "questions": questions,
         "source": "fallback",
@@ -734,7 +734,7 @@ def generate_price_proposal(title: str, description: str, budget: float, fair_pr
     high = round(fair_price * 1.15)
     if llm_enabled():
         data = _claude_json(
-            f"Job: {title}\nDescription: {description[:800]}\nClient budget: {budget} PLN\nAI fair price: {fair_price} PLN\n\n"
+            f"Job: {title}\nDescription: {description[:800]}\nClient budget: {budget} USD\nAI fair price: {fair_price} USD\n\n"
             "Return JSON only: {\"range_min\": number, \"range_max\": number, "
             "\"rationale\": \"2 sentences in the job's language explaining a fair price and a compromise point\"}",
             max_tokens=300,
@@ -750,8 +750,8 @@ def generate_price_proposal(title: str, description: str, budget: float, fair_pr
         "range_min": low,
         "range_max": high,
         "rationale": (
-            f"AI fair-price analysis for this scope suggests {fair_price:.0f} PLN "
-            f"(client budget: {budget:.0f} PLN). Recommended negotiation window: {low}-{high} PLN."
+            f"AI fair-price analysis for this scope suggests {fair_price:.0f} USD "
+            f"(client budget: {budget:.0f} USD). Recommended negotiation window: {low}-{high} USD."
         ),
         "model": "rules",
     }
@@ -761,7 +761,7 @@ def generate_milestones(title: str, description: str, budget: float, analysis: d
     """#5 Milestones: AI-proposed payment split (title, amount, due_days)."""
     if llm_enabled():
         data = _claude_json(
-            f"Job: {title}\nDescription: {description[:1200]}\nBudget: {budget} PLN\n\n"
+            f"Job: {title}\nDescription: {description[:1200]}\nBudget: {budget} USD\n\n"
             "Propose 2-4 payment milestones for this fixed-price contract. Each milestone must have "
             "a deliverable and a fair payment share. Return JSON only: "
             "{\"milestones\": [{\"title\": \"...\", \"amount\": number, \"due_days\": number}]} "
@@ -908,8 +908,8 @@ Freelancer: {freelancer_name}
 {job_description}
 
 2. PAYMENT
-Total contract value: {amount:.2f} PLN
-Platform fee ({fee_rate:.0%}): {fee:.2f} PLN
+Total contract value: {amount:.2f} USD
+Platform fee ({fee_rate:.0%}): {fee:.2f} USD
 Payment structure: milestone-based escrow via DROPIFY, released on client approval or
 auto-released 48 hours after delivery without objection.
 
@@ -936,8 +936,8 @@ Wykonawca: {freelancer_name}
 {job_description}
 
 2. PŁATNOŚĆ
-Wartość kontraktu: {amount:.2f} PLN
-Prowizja platformy ({fee_rate:.0%}): {fee:.2f} PLN
+Wartość kontraktu: {amount:.2f} USD
+Prowizja platformy ({fee_rate:.0%}): {fee:.2f} USD
 Płatność etapami (escrow) przez DROPIFY, zwalniana po akceptacji klienta lub
 automatycznie po 48h od dostarczenia bez zastrzeżeń.
 
@@ -1008,7 +1008,7 @@ def generate_dispute_mediation(job_title: str, job_description: str, dispute_rea
             "You are a neutral dispute mediator for a freelance marketplace contract. "
             f"Respond in {lang_name}.\n"
             f"Job: {job_title}\nDescription: {job_description[:800]}\n"
-            f"Contract amount: {contract_amount} PLN\nDispute reason (from one party): {dispute_reason[:800]}\n\n"
+            f"Contract amount: {contract_amount} USD\nDispute reason (from one party): {dispute_reason[:800]}\n\n"
             "Return JSON only: {\"assessment\": \"2-3 sentence neutral summary of the situation\", "
             "\"suggested_resolution\": \"release_to_freelancer|refund_client|manual_review\", "
             "\"rationale\": \"1-2 sentences explaining the suggestion\"}",
@@ -1043,7 +1043,7 @@ def generate_source_finder_plan(product_ref: str, notes: str, language: str) -> 
             f"Product reference: {product_ref[:500]}\nNotes: {notes[:500]}\n\n"
             "Return JSON only: {\"product_summary\": \"1-2 sentences\", "
             "\"suggested_jobs\": [{\"category\": \"one of: Photography, Writing, Video & Animation, Marketing, E-commerce\", "
-            "\"title\": \"...\", \"description\": \"...\", \"suggested_budget\": number in PLN}], "
+            "\"title\": \"...\", \"description\": \"...\", \"suggested_budget\": number in USD}], "
             "\"total_budget_estimate\": number}",
             max_tokens=700,
         )

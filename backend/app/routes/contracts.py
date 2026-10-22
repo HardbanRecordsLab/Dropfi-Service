@@ -125,7 +125,7 @@ def submit_milestone(
         db,
         contract.client_id,
         f"Milestone submitted: {milestone.title}",
-        f"Freelancer delivered '{milestone.title}' ({milestone.amount:.2f} PLN). "
+        f"Freelancer delivered '{milestone.title}' ({milestone.amount:.2f} USD). "
         f"Release it or it auto-releases after {AUTO_RELEASE_HOURS}h.",
         "milestone",
     )
@@ -215,7 +215,7 @@ def request_refund(
         db,
         contract.freelancer_id,
         "Contract cancelled — refund issued",
-        f"Client was refunded {refunded:.2f} PLN for '{job.title}' because no work was started. "
+        f"Client was refunded {refunded:.2f} USD for '{job.title}' because no work was started. "
         "AI verified the no-show automatically.",
         "refund",
     )
@@ -224,7 +224,7 @@ def request_refund(
         contract.client_id,
         "Refund issued" if not refund_failures else "Refund in progress",
         (
-            f"Your deposit for '{job.title}' was refunded ({refunded:.2f} PLN). "
+            f"Your deposit for '{job.title}' was refunded ({refunded:.2f} USD). "
             "AI matching is looking for a new freelancer."
         ) if not refund_failures else (
             f"Your refund for '{job.title}' could not be completed automatically. "
@@ -534,7 +534,7 @@ def finalize_milestone_release(db: Session, contract: Contract, milestone: Miles
             db,
             contract.freelancer_id,
             "Contract completed 🎉",
-            f"All milestones released — {contract.amount:.2f} PLN (minus fee) will be paid out.",
+            f"All milestones released — {contract.amount:.2f} USD (minus fee) will be paid out.",
             "success",
         )
         db.commit()

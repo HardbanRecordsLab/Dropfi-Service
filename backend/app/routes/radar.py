@@ -209,8 +209,8 @@ def update_listing_pipeline(
 ):
     if body.status not in _PIPELINE_STATUSES:
         raise HTTPException(status_code=422, detail=f"status must be one of {sorted(_PIPELINE_STATUSES)}")
-    if body.status == "won" and not body.amount_pln:
-        raise HTTPException(status_code=422, detail="Wygrana wymaga podania kwoty (amount_pln).")
+    if body.status == "won" and not body.amount_usd:
+        raise HTTPException(status_code=422, detail="Wygrana wymaga podania kwoty (amount_usd).")
 
     row = db.get(ExternalListing, listing_id)
     if not row:
@@ -224,7 +224,7 @@ def update_listing_pipeline(
         row.replied_at = now
     elif body.status == "won":
         row.closed_at = now
-        row.won_amount_pln = body.amount_pln
+        row.won_amount_usd = body.amount_usd
     elif body.status == "lost":
         row.closed_at = now
     if body.note is not None:
@@ -334,7 +334,7 @@ def radar_stats(user: User = Depends(get_current_user), db: Session = Depends(ge
     replied_total = (db.query(func.count(ExternalListing.id))
                       .filter(ExternalListing.replied_at.isnot(None)).scalar() or 0)
     won_total = pipeline_counts.get("won", 0)
-    won_total_pln = (db.query(func.coalesce(func.sum(ExternalListing.won_amount_pln), 0.0))
+    won_total_usd = (db.query(func.coalesce(func.sum(ExternalListing.won_amount_usd), 0.0))
                       .filter(ExternalListing.pipeline == "won").scalar() or 0.0)
 
     return {
@@ -356,6 +356,6 @@ def radar_stats(user: User = Depends(get_current_user), db: Session = Depends(ge
             "sent_total": sent_total,
             "reply_rate": round(replied_total / sent_total, 4) if sent_total else 0.0,
             "win_rate": round(won_total / sent_total, 4) if sent_total else 0.0,
-            "won_total_pln": won_total_pln,
+            "won_total_usd": won_total_usd,
         },
     }

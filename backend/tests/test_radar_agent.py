@@ -43,11 +43,11 @@ REAL_PROFILE = {
     "tagline": "Strony WWW i aplikacje webowe dla firm",
     "services": [
         {"name": "Strona WWW", "description": "Strony firmowe, landing page, CMS",
-         "price_from_pln": 2000, "typical_timeline": "2-3 tygodnie"},
+         "price_from_usd": 500, "typical_timeline": "2-3 tygodnie"},
     ],
     "keywords_include": ["strona www", "website", "landing page"],
     "keywords_exclude": ["logo"],
-    "min_budget_pln": 1000,
+    "min_budget_usd": 250,
     "languages": ["pl", "en"],
     "portfolio": [{"title": "Przykład", "url": "https://example.com", "one_liner": "Strona firmowa"}],
     "tone": "rzeczowy",
@@ -246,18 +246,18 @@ def test_pipeline_full_transition_updates_stats(client, monkeypatch):
     assert r2.json()["pipeline_note"] == "odpisali"
 
     r3 = client.post(f"/api/radar/listings/{row['id']}/pipeline",
-                      json={"status": "won", "amount_pln": 4500}, headers=auth_headers(admin))
+                      json={"status": "won", "amount_usd": 4500}, headers=auth_headers(admin))
     assert r3.status_code == 200
     body = r3.json()
     assert body["pipeline"] == "won"
-    assert body["won_amount_pln"] == 4500
+    assert body["won_amount_usd"] == 4500
     assert body["closed_at"] is not None
 
     stats = client.get("/api/radar/stats", headers=auth_headers(admin)).json()
     sa_stats = stats["sales_agent"]
     assert sa_stats["pipeline"].get("won", 0) >= 1
     assert sa_stats["sent_total"] >= 1
-    assert sa_stats["won_total_pln"] >= 4500
+    assert sa_stats["won_total_usd"] >= 4500
     assert 0.0 <= sa_stats["reply_rate"] <= 1.0
     assert 0.0 <= sa_stats["win_rate"] <= 1.0
 

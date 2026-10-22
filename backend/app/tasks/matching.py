@@ -122,7 +122,7 @@ def run_matching(db: Session, job_id: str) -> int:
             db,
             freelancer.id,
             "New job match!" if not fallback_run else "PRIORITY: fallback match!",
-            f"AI matched you to: {job.title} (score {score:.0%}). Budget: {job.budget:.2f} PLN. Deadline: {job.deadline}."
+            f"AI matched you to: {job.title} (score {score:.0%}). Budget: {job.budget:.2f} USD. Deadline: {job.deadline}."
             + (" Previous candidate declined — you are next in line." if fallback_run else ""),
             "priority" if fallback_run else "match",
             None if is_lead else freelancer.email,

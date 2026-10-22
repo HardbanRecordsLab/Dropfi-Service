@@ -31,11 +31,11 @@ def ask_copilot(
         raise HTTPException(status_code=404, detail="Job not found")
     contract = _assert_participant(db, job, user)
 
-    context_parts = [f"Status: {job.status}", f"Budget: {job.budget} PLN"]
+    context_parts = [f"Status: {job.status}", f"Budget: {job.budget} USD"]
     if job.ai_analysis:
         context_parts.append(f"AI analysis: {job.ai_analysis}")
     if contract:
-        context_parts.append(f"Contract amount: {contract.amount} PLN, fee: {contract.platform_fee} PLN")
+        context_parts.append(f"Contract amount: {contract.amount} USD, fee: {contract.platform_fee} USD")
 
     answer = answer_copilot(job.title, job.description, " | ".join(context_parts), question, language)
 

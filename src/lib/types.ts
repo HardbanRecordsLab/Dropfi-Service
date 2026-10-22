@@ -403,7 +403,7 @@ export interface ExternalListing {
   applied_at: string | null;
   replied_at: string | null;
   closed_at: string | null;
-  won_amount_pln: number | null;
+  won_amount_usd: number | null;
   pipeline_note: string | null;
 }
 
@@ -455,6 +455,6 @@ export interface RadarStats {
     sent_total: number;
     reply_rate: number;
     win_rate: number;
-    won_total_pln: number;
+    won_total_usd: number;
   };
 }

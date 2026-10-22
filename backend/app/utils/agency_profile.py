@@ -79,7 +79,7 @@ def load_agency_profile(*, force_reload: bool = False) -> dict[str, Any]:
     data.setdefault("keywords_exclude", [])
     data.setdefault("portfolio", [])
     data.setdefault("languages", ["pl", "en"])
-    data.setdefault("min_budget_pln", 0)
+    data.setdefault("min_budget_usd", 0)
 
     data["is_template"] = path is _EXAMPLE_PATH or _looks_like_template(data)
     _cache = data

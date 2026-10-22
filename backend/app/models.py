@@ -411,7 +411,7 @@ class Invoice(TimestampMixin, Base):
     vat_rate = Column(Float, nullable=False, default=0.23)
     vat_amount = Column(Float, nullable=False, default=0.0)
     total = Column(Float, nullable=False)
-    currency = Column(String(5), default="PLN")
+    currency = Column(String(5), default="USD")
 
     # Status
     status = Column(String(20), default="issued", index=True)  # issued | paid | cancelled
@@ -490,7 +490,7 @@ class ExternalListing(TimestampMixin, Base):
     applied_at = Column(DateTime(timezone=True), nullable=True)
     replied_at = Column(DateTime(timezone=True), nullable=True)
     closed_at = Column(DateTime(timezone=True), nullable=True)
-    won_amount_pln = Column(Float, nullable=True)
+    won_amount_usd = Column(Float, nullable=True)
     pipeline_note = Column(Text, nullable=True)
 
     imported_job = relationship("Job", foreign_keys=[imported_job_id])

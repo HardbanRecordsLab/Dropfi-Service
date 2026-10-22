@@ -8,7 +8,7 @@ Score is 0-100, built from:
     + cosine_similarity from app/utils/ai.py — same embedding util the rest
     of the platform already uses for job/freelancer matching, not a new one)
   - keyword overlap bonus (keywords_include hits)
-  - budget vs. profile.min_budget_pln
+  - budget vs. profile.min_budget_usd
   - listing language vs. profile.languages
   - freshness (posted_at)
 A keywords_exclude hit short-circuits to 0 regardless of everything else.
@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.utils.ai import cosine_similarity, embed_text
+from app.utils.currency import to_usd
 
 SEMANTIC_WEIGHT = 55
 KEYWORD_WEIGHT = 20
@@ -67,13 +68,15 @@ def _matched_keywords(text: str, keywords: list[str]) -> list[str]:
 
 
 def _budget_component(listing: Any, profile: dict) -> tuple[float, str | None]:
-    min_budget = profile.get("min_budget_pln") or 0
+    min_budget = profile.get("min_budget_usd") or 0
     budget = getattr(listing, "budget_max", None) or getattr(listing, "budget_min", None)
+    if budget:  # stored in the listing currency (PLN when empty) -> USD, the unit of min_budget_usd
+        budget = to_usd(float(budget), getattr(listing, "currency", None))
     if not budget:
         return BUDGET_WEIGHT * 0.5, None  # unknown budget — neutral, not a penalty
     if min_budget and budget < min_budget:
-        return 0.0, f"budżet poniżej minimum ({budget:.0f} < {min_budget:.0f} PLN)"
-    return float(BUDGET_WEIGHT), f"budżet {budget:.0f} PLN"
+        return 0.0, f"budżet poniżej minimum ({budget:.0f} < {min_budget:.0f} USD)"
+    return float(BUDGET_WEIGHT), f"budżet {budget:.0f} USD"
 
 
 def _language_component(listing: Any, profile: dict) -> tuple[float, str | None]:

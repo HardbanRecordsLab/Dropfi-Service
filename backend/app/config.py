@@ -115,7 +115,7 @@ class Settings(BaseSettings):
     PLATFORM_NAME: str = "HardbanRecords Lab"
     INVOICE_PREFIX: str = "DROPIFY"
     INVOICE_VAT_RATE: float = 0.23      # 23% VAT for PL domestic
-    INVOICE_CURRENCY: str = "PLN"
+    INVOICE_CURRENCY: str = "USD"
     INVOICE_PAYMENT_DAYS: int = 14
 
     # Portal Radar — global scan of external job portals (official APIs / RSS only)

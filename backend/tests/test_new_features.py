@@ -50,20 +50,20 @@ def test_f2_currency_and_tax_live_provider_override(monkeypatch, client):
     monkeypatch.setattr(
         currency_utils.httpx,
         "get",
-        lambda *args, **kwargs: FakeResponse({"rates": {"PLN": 1.0, "EUR": 1.42, "USD": 1.31}}),
+        lambda *args, **kwargs: FakeResponse({"rates": {"USD": 1.0, "EUR": 0.92, "PLN": 3.9}}),
     )
 
     resp = client.get("/api/fx/rates")
     assert resp.status_code == 200
     payload = resp.json()
-    assert payload["rates"]["EUR"] == 1.42
+    assert payload["rates"]["EUR"] == 0.92
     assert payload["source"] == "live"
 
 
 def test_f2_currency_and_tax(client):
     rates = client.get("/api/fx/rates")
     assert rates.status_code == 200
-    assert rates.json()["base"] == "PLN"
+    assert rates.json()["base"] == "USD"
     assert "EUR" in rates.json()["rates"]
 
     hint = client.get("/api/fx/tax-hint/DE")

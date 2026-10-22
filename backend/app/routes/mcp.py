@@ -48,7 +48,7 @@ TOOLS = [
     {
         "name": "draft_job",
         "description": "Turn a one-sentence idea into a complete job brief (title, description, skills, "
-                       "suggested budget in PLN and deadline). Does not publish anything.",
+                       "suggested budget in USD and deadline). Does not publish anything.",
         "inputSchema": {"type": "object", "properties": {
             "idea": {"type": "string", "description": "e.g. 'white-background photos of 30 shoes'"},
         }, "required": ["idea"]},
@@ -60,7 +60,7 @@ TOOLS = [
         "inputSchema": {"type": "object", "properties": {
             "title": {"type": "string"},
             "description": {"type": "string"},
-            "budget": {"type": "number", "description": "Budget in PLN"},
+            "budget": {"type": "number", "description": "Budget in USD"},
             "deadline": {"type": "string", "description": "YYYY-MM-DD (default: in 14 days)"},
             "required_skills": {"type": "array", "items": {"type": "string"}},
             "location": {"type": "string"},
@@ -89,7 +89,7 @@ TOOLS = [
         "name": "estimate_fees",
         "description": "Compare what a job of a given value costs on DROPIFY vs Upwork vs Fiverr.",
         "inputSchema": {"type": "object", "properties": {
-            "amount": {"type": "number", "description": "Job value in PLN"},
+            "amount": {"type": "number", "description": "Job value in USD"},
         }, "required": ["amount"]},
     },
 ]
@@ -102,7 +102,7 @@ class ToolError(Exception):
 def _public_profile(u: User, similarity: float | None = None) -> dict:
     out = {
         "id": u.id, "name": u.display_name, "bio": (u.bio or "")[:300], "skills": u.skills or [],
-        "location": u.location, "languages": u.languages or [], "hourly_rate_pln": u.hourly_rate,
+        "location": u.location, "languages": u.languages or [], "hourly_rate_usd": u.hourly_rate,
         "rating": round(u.rating or 0, 2), "rating_count": u.rating_count,
         "completed_jobs": u.completed_jobs, "availability": u.availability,
         "profile_url": f"{settings.FRONTEND_URL.rstrip('/')}/dashboard/freelancers?id={u.id}",
@@ -158,7 +158,7 @@ def _tool_post_job(db: Session, owner: User, args: dict):
 def _tool_list_my_jobs(db: Session, owner: User, args: dict):
     jobs = db.query(Job).filter(Job.client_id == owner.id).order_by(Job.created_at.desc()).limit(50).all()
     return {"jobs": [{
-        "id": j.id, "title": j.title, "status": j.status, "budget_pln": j.budget,
+        "id": j.id, "title": j.title, "status": j.status, "budget_usd": j.budget,
         "deadline": str(j.deadline), "matches": len(j.matches),
     } for j in jobs]}
 
@@ -170,7 +170,7 @@ def _tool_get_job_matches(db: Session, owner: User, args: dict):
     matches = db.query(Match).filter(Match.job_id == job.id).order_by(Match.score.desc()).all()
     return {"job": {"id": job.id, "title": job.title, "status": job.status}, "matches": [{
         "match_id": m.id, "score": round(m.score, 1), "status": m.status,
-        "interview_score": m.interview_score, "agreed_price_pln": m.agreed_price,
+        "interview_score": m.interview_score, "agreed_price_usd": m.agreed_price,
         "freelancer": _public_profile(m.freelancer),
     } for m in matches]}
 
@@ -193,9 +193,9 @@ def _tool_estimate_fees(db: Session, owner: User, args: dict):
     if amount <= 0:
         raise ToolError("amount must be positive")
     rates = {"DROPIFY": settings.PLATFORM_FEE_RATE, "Upwork (approx.)": 0.19, "Fiverr (approx.)": 0.277}
-    rows = {name: {"fee_pln": round(amount * r, 2), "rate": r} for name, r in rates.items()}
+    rows = {name: {"fee_usd": round(amount * r, 2), "rate": r} for name, r in rates.items()}
     saving = round(amount * (0.19 - settings.PLATFORM_FEE_RATE), 2)
-    return {"amount_pln": amount, "platforms": rows, "saving_vs_upwork_pln": saving,
+    return {"amount_usd": amount, "platforms": rows, "saving_vs_upwork_usd": saving,
             "note": f"DROPIFY tiers: top-rated {settings.FEE_RATE_TOP:.0%}, new {settings.FEE_RATE_NEW:.0%}."}
 
 
@@ -232,7 +232,7 @@ def _dispatch(db: Session, owner: User, msg: dict):
             "capabilities": {"tools": {"listChanged": False}},
             "serverInfo": SERVER_INFO,
             "instructions": "DROPIFY finds freelancers with AI. Typical flow: draft_job -> (confirm with user) "
-                            "-> post_job -> get_job_matches -> send_message. Budgets are in PLN; fee is 8%.",
+                            "-> post_job -> get_job_matches -> send_message. Budgets are in USD; fee is 8%.",
         })
     if method == "ping":
         return _ok(rid, {})

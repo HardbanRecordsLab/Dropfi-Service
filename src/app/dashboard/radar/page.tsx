@@ -156,7 +156,7 @@ export default function RadarPage() {
         setMsg(t("radar.pipeline.amountRequired"));
         return;
       }
-      await act(() => API.radarUpdatePipeline(id, { status, amount_pln: amount }));
+      await act(() => API.radarUpdatePipeline(id, { status, amount_usd: amount }));
       return;
     }
     await act(() => API.radarUpdatePipeline(id, { status }));
@@ -200,7 +200,7 @@ export default function RadarPage() {
           <StatCard icon="✉️" label={t("radar.stats.sent")} value={stats.sales_agent.sent_total} />
           <StatCard icon="↩️" label={t("radar.stats.replyRate")} value={`${Math.round(stats.sales_agent.reply_rate * 100)}%`} />
           <StatCard icon="🏆" label={t("radar.stats.winRate")} value={`${Math.round(stats.sales_agent.win_rate * 100)}%`} />
-          <StatCard icon="💰" label={t("radar.stats.wonTotal")} value={`${stats.sales_agent.won_total_pln.toLocaleString()} PLN`} />
+          <StatCard icon="💰" label={t("radar.stats.wonTotal")} value={`${stats.sales_agent.won_total_usd.toLocaleString()} USD`} />
         </div>
       )}
 
@@ -320,7 +320,7 @@ export default function RadarPage() {
                         />
                         {(l.offer_price_min || l.offer_price_max) && (
                           <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "0.6rem" }}>
-                            {t("radar.offer.priceRange")}: {l.offer_price_min ?? "?"}–{l.offer_price_max ?? "?"} PLN
+                            {t("radar.offer.priceRange")}: {l.offer_price_min ?? "?"}–{l.offer_price_max ?? "?"} USD
                           </div>
                         )}
                         {l.offer_questions && l.offer_questions.length > 0 && (

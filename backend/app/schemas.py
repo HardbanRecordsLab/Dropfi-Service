@@ -379,13 +379,13 @@ class ExternalListingOut(ORMModel):
     applied_at: Optional[datetime] = None
     replied_at: Optional[datetime] = None
     closed_at: Optional[datetime] = None
-    won_amount_pln: Optional[float] = None
+    won_amount_usd: Optional[float] = None
     pipeline_note: Optional[str] = None
 
 
 class PipelineUpdate(BaseModel):
     status: str
-    amount_pln: Optional[float] = None
+    amount_usd: Optional[float] = None
     note: Optional[str] = None
 
 

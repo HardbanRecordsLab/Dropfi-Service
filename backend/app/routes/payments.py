@@ -29,7 +29,7 @@ def refund_stripe_payment(payment: Payment, amount: float | None = None) -> bool
     provider_ref is only set once the webhook confirms settlement). Returns
     False when a real Stripe charge exists but the refund call itself fails,
     so the caller can avoid marking it 'refunded' in the DB when no money
-    actually moved back. ``amount`` (PLN) refunds only part of the charge —
+    actually moved back. ``amount`` (USD) refunds only part of the charge —
     used by proportional dispute resolution.
     """
     if payment.provider != "stripe" or not payment.provider_ref:
@@ -117,7 +117,7 @@ def create_checkout(
             mode="payment",
             line_items=[{
                 "price_data": {
-                    "currency": "pln",
+                    "currency": "usd",
                     "product_data": {"name": f"DROPIFY milestone: {milestone.title}"},
                     "unit_amount": int(round(milestone.amount * 100)),
                 },
