@@ -748,6 +748,8 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>("en");
 
   useEffect(() => {
+    // Read the saved/cookie/?lang= choice only after hydration, so the server and first client render both stay "en".
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLangState(resolveInitialLang("dropify_lang"));
   }, []);
 
