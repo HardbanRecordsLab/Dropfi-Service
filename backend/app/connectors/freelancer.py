@@ -59,7 +59,9 @@ class FreelancerConnector(Connector):
     def fetch_listings(self, limit: int) -> list[NormalizedListing]:
         # 1) agency-relevant jobs (HRL Digital sales agent), 2) every other trade.
         # Half the budget for agency work, the rest spread across trades.
-        projects = self._fetch([("jobs[]", job_id) for job_id in JOB_IDS], max(1, limit // 2))
+        # list(): never extend the object returned by the HTTP layer in place (a cached/shared response doubled 25 times
+        # in the tests and exhausted the CI runner's memory)
+        projects = list(self._fetch([("jobs[]", job_id) for job_id in JOB_IDS], max(1, limit // 2)))
         per_query = max(1, (limit - limit // 2) // len(INDUSTRY_QUERIES))
         for q in INDUSTRY_QUERIES:
             try:
