@@ -89,11 +89,10 @@ class FreelancehuntConnector(Connector):
         description = strip_html(attrs.get("description") or "")
         currency = budget.get("currency", "")
         amount = budget.get("amount")
-        # Scoring compares budget_max against a PLN threshold with no currency
-        # conversion — only pass through an amount when it's actually PLN,
-        # otherwise a UAH figure would be silently misread as PLN.
-        budget_min = amount if currency == "PLN" else None
-        budget_max = amount if currency == "PLN" else None
+        # The amount is stored in its own currency (the ``currency`` field travels with it) and converted to USD where
+        # it is compared (scoring, import), so a UAH figure is never misread as PLN. Without an amount there is nothing to pass.
+        budget_min = amount if amount else None
+        budget_max = amount if amount else None
         budget_text = f"{amount} {currency}" if amount else ""
 
         return NormalizedListing(

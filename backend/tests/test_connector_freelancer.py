@@ -52,8 +52,9 @@ def test_freelancer_connector_parses_sample_response(monkeypatch):
     assert first.category == "PHP"
     assert "WordPress" in first.tags
     assert first.budget_text == "$30 - $250"
-    # USD must never be passed through as a PLN figure to the scorer
-    assert first.budget_min is None and first.budget_max is None
+    # the amounts keep their own currency (USD here) and are converted to USD where they are compared, so a USD figure
+    # is never misread as PLN — and leads below the agency minimum can be filtered
+    assert first.budget_min == 30.0 and first.budget_max == 250.0 and first.currency == "USD"
     assert first.language == "en"
     assert first.is_remote is True
     assert first.posted_at is not None

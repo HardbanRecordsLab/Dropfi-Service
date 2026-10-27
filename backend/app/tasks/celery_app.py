@@ -59,4 +59,9 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.radar.scan_all_sources",
         "schedule": crontab(minute=0, hour=f"*/{max(1, settings.RADAR_SCAN_INTERVAL_HOURS)}"),
     },
+    # after each scan: is the lead still open, how crowded, is it a repost (see app/utils/radar_market.py)
+    "radar-refresh-lead-market": {
+        "task": "app.tasks.radar.refresh_lead_market",
+        "schedule": crontab(minute=45, hour=f"*/{max(1, settings.RADAR_SCAN_INTERVAL_HOURS)}"),
+    },
 }

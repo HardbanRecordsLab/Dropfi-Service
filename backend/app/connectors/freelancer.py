@@ -83,13 +83,10 @@ class FreelancerConnector(Connector):
         currency = (p.get("currency") or {}).get("code", "")
         amount_min = budget.get("minimum")
         amount_max = budget.get("maximum")
-        # Scoring compares budget_max against a PLN threshold with no
-        # currency conversion — most Freelancer.com budgets are USD, so only
-        # pass them through when they're actually PLN, else budget_text-only.
-        if currency == "PLN":
-            budget_min, budget_max = amount_min, amount_max
-        else:
-            budget_min, budget_max = None, None
+        # Amounts stay in the listing's own currency (``currency`` travels with them) and are converted to USD where they
+        # are compared (scoring, import). Before 2026-10-27 non-PLN budgets were dropped, so every USD/INR lead looked
+        # "budget unknown" and tiny-budget leads were never filtered out.
+        budget_min, budget_max = amount_min, amount_max
         sign = (p.get("currency") or {}).get("sign", "")
         budget_text = (
             f"{sign}{amount_min:.0f} - {sign}{amount_max:.0f}"

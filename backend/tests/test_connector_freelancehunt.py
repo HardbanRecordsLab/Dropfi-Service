@@ -84,7 +84,7 @@ def test_freelancehunt_connector_parses_sample_response(monkeypatch):
     assert "wordpress" in ru.tags
     assert ru.budget_text == "4000 UAH"
     # UAH must never be passed through as a PLN figure to the scorer
-    assert ru.budget_min is None and ru.budget_max is None
+    assert ru.budget_min == 4000 and ru.budget_max == 4000 and ru.currency == "UAH"   # kept in its own currency, converted where compared
     assert ru.language == "uk"
     assert ru.is_remote is True
     assert ru.posted_at is not None

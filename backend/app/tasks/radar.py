@@ -9,7 +9,7 @@ failure is recorded on its own ``RadarScanLog`` row.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from celery import shared_task
 from sqlalchemy.orm import Session
@@ -235,6 +235,93 @@ def score_and_alert_new_listings() -> dict:
     finally:
         db.close()
     return {"scored": scored, "alerted": alerted, "offers_generated": offers_generated}
+
+
+REFRESH_MIN_FIT = 30
+REFRESH_WINDOW_DAYS = 21
+REFRESH_RECHECK_HOURS = 20
+REPOST_CAP = 20
+
+
+@shared_task(name="app.tasks.radar.refresh_lead_market")
+def refresh_lead_market(max_checks: int = 60) -> dict:
+    """Keeps the sales agent honest: for the best-scoring recent leads asks the portal whether the project is still
+    open and how many bids it has, and flags near-identical reposts of one job.
+
+    Idempotent — the score the lead had before any adjustment is remembered in ``raw["market"]["base_score"]``, so
+    running it again never stacks penalties. Closed leads get fit_score 0 and are dismissed; crowded ones lose points;
+    reposts are capped below the alert threshold. Never touches leads already worked on (pipeline set) or imported."""
+    from app.utils.radar_market import fetch_market, find_duplicate_ids, market_adjustment
+
+    db = SessionLocal()
+    checked = closed = crowded = reposts = 0
+    try:
+        now = datetime.now(timezone.utc)
+        since = now - timedelta(days=REFRESH_WINDOW_DAYS)
+        rows = (db.query(ExternalListing)
+                .filter(ExternalListing.fit_score >= REFRESH_MIN_FIT, ExternalListing.status == "new",
+                        ExternalListing.pipeline.is_(None), ExternalListing.fetched_at >= since)
+                .order_by(ExternalListing.fit_score.desc()).limit(400).all())
+
+        def base_of(row) -> float:
+            return float((row.raw or {}).get("market", {}).get("base_score", row.fit_score))
+
+        # 1) reposts: within one source keep the best-scoring lead of each near-identical group
+        by_source: dict[str, list] = {}
+        for row in rows:
+            by_source.setdefault(row.source, []).append(row)
+        by_id = {r.id: r for r in rows}
+        for source_rows in by_source.values():
+            dups = find_duplicate_ids([(r.id, r.title or "", base_of(r)) for r in source_rows])
+            for dup_id, kept_id in dups.items():
+                row = by_id[dup_id]
+                market = dict((row.raw or {}).get("market", {}))
+                if market.get("dup_of"):
+                    continue
+                market.setdefault("base_score", row.fit_score)
+                market["dup_of"] = kept_id
+                row.raw = {**(row.raw or {}), "market": market}
+                row.fit_score = float(min(row.fit_score, REPOST_CAP))
+                row.fit_reason = f"Powtórzone ogłoszenie (to samo zlecenie co {kept_id}). " + (row.fit_reason or "")
+                reposts += 1
+        db.commit()
+
+        # 2) portal status + bid count for the best leads not checked in the last day
+        stale_before = now - timedelta(hours=REFRESH_RECHECK_HOURS)
+        for row in rows:
+            if checked >= max_checks:
+                break
+            if row.source not in ("freelancer", "freelancehunt") or (row.raw or {}).get("market", {}).get("dup_of"):
+                continue
+            market = dict((row.raw or {}).get("market", {}))
+            last = market.get("checked_at")
+            if last and datetime.fromisoformat(last) > stale_before:
+                continue
+            info = fetch_market(row.source, row.external_id)
+            if info is None:
+                continue
+            checked += 1
+            market.setdefault("base_score", row.fit_score)
+            market.update(info, checked_at=now.isoformat())
+            delta, note, is_closed = market_adjustment(info)
+            row.raw = {**(row.raw or {}), "market": market}
+            if is_closed:
+                row.fit_score = 0.0
+                row.fit_reason = f"Zamknięte w portalu: {info.get('status') or 'brak statusu'}. " + (row.fit_reason or "")
+                row.status = "dismissed"
+                closed += 1
+            else:
+                row.fit_score = float(max(0.0, market["base_score"] + delta))
+                if note:
+                    row.fit_reason = f"{note.capitalize()}. " + (row.fit_reason or "")
+                    crowded += 1
+            row.updated_at = now
+        db.commit()
+    finally:
+        db.close()
+    result = {"checked": checked, "closed": closed, "crowded": crowded, "reposts": reposts}
+    logger.info("Radar refresh: %s", result)
+    return result
 
 
 @shared_task(name="app.tasks.radar.keep_min_open_jobs")

@@ -44,6 +44,9 @@ _PROJECT_SIGNALS = (
 )
 FULL_TIME_PENALTY = 20
 PROJECT_BONUS = 10
+# A lead whose KNOWN budget (top of the range, in USD) is under the agency minimum can still win 70 points on text fit
+# alone; cap it below RADAR_ALERT_MIN_SCORE so it is never alerted or offered. Unknown budgets are not capped.
+BELOW_MIN_BUDGET_CAP = 25
 
 
 def _text_of(listing: Any) -> str:
@@ -65,6 +68,13 @@ def _profile_text(profile: dict) -> str:
 
 def _matched_keywords(text: str, keywords: list[str]) -> list[str]:
     return [kw for kw in keywords if kw and str(kw).lower() in text]
+
+
+def _budget_usd(listing: Any) -> float | None:
+    budget = getattr(listing, "budget_max", None) or getattr(listing, "budget_min", None)
+    if not budget:
+        return None
+    return to_usd(float(budget), getattr(listing, "currency", None))
 
 
 def _budget_component(listing: Any, profile: dict) -> tuple[float, str | None]:
@@ -130,6 +140,12 @@ def score_listing(listing: Any, profile: dict) -> tuple[int, str]:
         total += PROJECT_BONUS
     score = int(round(max(0.0, min(100.0, total))))
 
+    min_budget = profile.get("min_budget_usd") or 0
+    budget_usd = _budget_usd(listing)
+    below_min = bool(min_budget and budget_usd and budget_usd < min_budget)
+    if below_min:
+        score = min(score, BELOW_MIN_BUDGET_CAP)
+
     category = getattr(listing, "category", "") or "brak kategorii"
     budget_text = getattr(listing, "budget_text", "") or budget_note or "budżet nieznany"
     reason_parts = [category, budget_text]
@@ -137,6 +153,8 @@ def score_listing(listing: Any, profile: dict) -> tuple[int, str]:
         reason_parts.append("pasuje: " + ", ".join(matched[:3]))
     if language_note:
         reason_parts.append(language_note)
+    if below_min:
+        reason_parts.append(f"budżet poniżej minimum agencji ({budget_usd:.0f} < {min_budget:.0f} USD) — wynik ograniczony")
     if is_full_time:
         reason_parts.append("sygnały pracy na etat (obniżono wynik)")
     if is_project:
