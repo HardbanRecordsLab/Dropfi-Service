@@ -51,6 +51,18 @@ def test_unknown_budget_is_not_capped():
     assert "poniżej minimum" not in reason
 
 
+def test_excluded_service_only_in_description_lowers_the_score_but_in_title_zeroes_it():
+    profile = {**PROFILE, "keywords_exclude": ["copywriting"]}
+    side_remark = _Listing(description="Company website with landing page. Copywriting is provided by me.")
+    in_title = _Listing(title="Copywriting for a website", description="Landing page text")
+    clean = _Listing(description="Company website with landing page.")
+    side_score, side_reason = score_listing(side_remark, profile)
+    clean_score, _ = score_listing(clean, profile)
+    title_score, title_reason = score_listing(in_title, profile)
+    assert 0 < side_score < clean_score and "spoza oferty" in side_reason
+    assert title_score == 0 and "Wykluczone" in title_reason
+
+
 # ---- reposts --------------------------------------------------------------------------------------------------------
 
 def test_same_job_posted_with_different_titles_is_a_repost():

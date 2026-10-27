@@ -47,6 +47,7 @@ PROJECT_BONUS = 10
 # A lead whose KNOWN budget (top of the range, in USD) is under the agency minimum can still win 70 points on text fit
 # alone; cap it below RADAR_ALERT_MIN_SCORE so it is never alerted or offered. Unknown budgets are not capped.
 BELOW_MIN_BUDGET_CAP = 25
+EXCLUDE_BODY_PENALTY = 12   # per excluded keyword found only in the description (max two count)
 
 
 def _text_of(listing: Any) -> str:
@@ -114,9 +115,14 @@ def score_listing(listing: Any, profile: dict) -> tuple[int, str]:
     text = _text_of(listing)
 
     exclude = [k for k in profile.get("keywords_exclude", []) if k]
-    hit_exclude = _matched_keywords(text, exclude)
-    if hit_exclude:
-        return 0, f"Wykluczone: pasuje do słowa kluczowego z listy wykluczeń ({hit_exclude[0]})."
+    # An excluded service named in the TITLE or category is the job itself (zero). Named only deep in the description it is
+    # usually a side remark ("copy provided by me") in an otherwise fitting website project, so it costs points, not the lead.
+    head = " ".join([getattr(listing, "title", "") or "", getattr(listing, "category", "") or ""]).lower()
+    hit_head = _matched_keywords(head, exclude)
+    if hit_head:
+        return 0, f"Wykluczone: pasuje do słowa kluczowego z listy wykluczeń ({hit_head[0]})."
+    hit_body = _matched_keywords(text, exclude)
+    exclude_penalty = min(len(hit_body), 2) * EXCLUDE_BODY_PENALTY
 
     profile_text = _profile_text(profile)
     semantic = cosine_similarity(embed_text(text), embed_text(profile_text))
@@ -138,6 +144,7 @@ def score_listing(listing: Any, profile: dict) -> tuple[int, str]:
         total -= FULL_TIME_PENALTY
     if is_project:
         total += PROJECT_BONUS
+    total -= exclude_penalty
     score = int(round(max(0.0, min(100.0, total))))
 
     min_budget = profile.get("min_budget_usd") or 0
@@ -153,6 +160,8 @@ def score_listing(listing: Any, profile: dict) -> tuple[int, str]:
         reason_parts.append("pasuje: " + ", ".join(matched[:3]))
     if language_note:
         reason_parts.append(language_note)
+    if hit_body:
+        reason_parts.append(f"w opisie wspomniano usługę spoza oferty ({hit_body[0]}) — obniżono wynik")
     if below_min:
         reason_parts.append(f"budżet poniżej minimum agencji ({budget_usd:.0f} < {min_budget:.0f} USD) — wynik ograniczony")
     if is_full_time:
