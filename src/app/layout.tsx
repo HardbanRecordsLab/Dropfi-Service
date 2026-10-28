@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit, Playfair_Display } from "next/font/google";
+import Script from "next/script";
 import { LangProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
@@ -68,6 +69,7 @@ export default function RootLayout({
         <LangProvider>
           <AuthProvider>{children}</AuthProvider>
         </LangProvider>
+        <Script src="https://hardbanrecordslab.online/lp/shared/hrl-analytics.js?v=1" strategy="afterInteractive" />
       </body>
     </html>
   );
