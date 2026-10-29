@@ -69,7 +69,7 @@ export default function RootLayout({
         <LangProvider>
           <AuthProvider>{children}</AuthProvider>
         </LangProvider>
-        <Script src="https://hardbanrecordslab.online/lp/shared/hrl-analytics.js?v=1" strategy="afterInteractive" />
+        <Script src="https://hardbanrecordslab.online/lp/shared/hrl-analytics.js?v=4" strategy="afterInteractive" />
       </body>
     </html>
   );
